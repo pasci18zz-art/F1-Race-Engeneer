@@ -80,7 +80,7 @@ class Lenkrad:
             self._pygame = pygame_laden()
         except Exception as e:
             log.warning("Lenkradtaste nicht verfügbar (pygame fehlt? %s). "
-                        "Installieren mit: pip install pygame", e)
+                        "Installieren mit: pip install pygame-ce", e)
 
     def _suchen(self) -> None:
         pg = self._pygame
@@ -150,7 +150,7 @@ def tasten_finden(ausgabe=print, dauer: float = 30.0) -> None:
     try:
         pg = pygame_laden()
     except Exception as e:
-        ausgabe(f"pygame ist nicht installiert ({e}). Installieren mit: pip install pygame")
+        ausgabe(f"pygame ist nicht installiert ({e}). Installieren mit: pip install pygame-ce")
         return
     geraete = []
     for i in range(pg.joystick.get_count()):

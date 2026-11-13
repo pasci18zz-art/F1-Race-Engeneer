@@ -1,0 +1,261 @@
+# Anleitung Schritt für Schritt
+
+Du brauchst nichts zu programmieren und keine Befehle zu tippen. Alles läuft
+über Doppelklicks auf Dateien im Programmordner und über zwei Textdateien, die
+du mit dem Windows-Editor änderst.
+
+**Die Reihenfolge:** erst Teil A bis C (alles einrichten und ohne Spiel
+ausprobieren), dann D und E (Spiel und SimHub), danach F bis H (Mikrofon,
+Lenkradtaste, Tablet).
+
+---
+
+## A. Python installieren (einmalig)
+
+Python ist die Programmiersprache, in der der Renningenieur geschrieben ist.
+Windows bringt sie nicht mit.
+
+1. Im Browser **https://www.python.org/downloads/** öffnen.
+2. Auf den gelben Knopf **„Download Python 3.…“** klicken. Die Datei landet im
+   Ordner „Downloads“.
+3. Die heruntergeladene Datei doppelklicken (sie heißt etwa
+   `python-3.xx.x-amd64.exe`).
+4. **Wichtig:** Im ersten Fenster ganz unten das Häkchen bei
+   **„Add python.exe to PATH“** setzen.
+5. Auf **„Install Now“** klicken, warten, am Ende **„Close“**.
+
+## B. Das Programm auf den PC holen (einmalig)
+
+1. Im Browser **https://github.com/pasci18zz-art/F1-Race-Engeneer** öffnen
+   (bei GitHub angemeldet sein).
+2. Auf den grünen Knopf **„Code“** klicken, dann unten auf **„Download ZIP“**.
+3. Im Ordner „Downloads“ die ZIP-Datei mit der **rechten Maustaste** anklicken
+   → **„Alle extrahieren…“** → **„Extrahieren“**.
+4. Es entsteht ein Ordner `F1-Race-Engeneer-…`. Öffne ihn, bis du die Dateien
+   `start.bat` und `installieren.bat` siehst. (Manchmal steckt darin noch ein
+   Ordner mit dem gleichen Namen – dann den inneren nehmen.)
+5. Diesen Ordner an einen festen Platz schieben, z. B. nach
+   `C:\Renningenieur`. Dort bleibt er.
+
+In diesem Ordner liegen ab jetzt alle Dateien, von denen unten die Rede ist:
+
+| Datei | Wofür |
+|---|---|
+| `installieren.bat` | einmalig: installiert die Zusatzteile |
+| `start.bat` | startet den Renningenieur (das benutzt du jedes Mal) |
+| `simulation.bat` | Testrennen ohne Spiel |
+| `geraete.bat` | zeigt Mikrofone und Lenkradtasten an |
+| `pruefen.bat` | prüft, ob die Daten des Spiels richtig ankommen |
+| `config.toml` | deine Einstellungen (entsteht beim ersten Start) |
+| `texte.toml` | alle Sprüche (entsteht beim ersten Start) |
+
+## C. Installieren und ohne Spiel ausprobieren
+
+### C1. Zusatzteile installieren (einmalig)
+
+1. **`installieren.bat` doppelklicken.**
+2. Falls ein blaues Fenster „Der Computer wurde durch Windows geschützt“
+   kommt: auf **„Weitere Informationen“** klicken, dann **„Trotzdem
+   ausführen“**. (Das kommt, weil die Datei aus dem Internet stammt.)
+3. Ein schwarzes Fenster arbeitet ein paar Minuten. Es lädt die
+   Spracherkennung, die Mikrofon- und Lenkrad-Anbindung und das deutsche
+   Sprachmodell (ca. 45 MB).
+4. Wenn **„Fertig. Jetzt start.bat doppelklicken.“** dasteht, eine beliebige
+   Taste drücken. Das Fenster schließt sich.
+
+Steht dort „Python wurde nicht gefunden“: Teil A wiederholen und auf das
+Häkchen aus Schritt 4 achten.
+
+### C2. Renningenieur starten
+
+1. **`start.bat` doppelklicken.** Ein schwarzes Fenster bleibt offen – das ist
+   das Programm. Solange es offen ist, läuft der Renningenieur.
+2. Fragt die Windows-Firewall nach Python: Häkchen bei **„Private Netzwerke“**
+   und **„Zugriff zulassen“**. (Nötig fürs Tablet.)
+3. Im Fenster sollte stehen:
+   ```
+   UDP-Empfang auf Port 20777, Weiterleitung an: 127.0.0.1:20778
+   Tablet-Seite: http://192.168.…:8025
+   Bereit. …
+   ```
+
+Steht dort „UDP-Port 20777 ist belegt“, läuft SimHub noch auf diesem Port:
+SimHub schließen oder erst Teil E machen.
+
+### C3. Testrennen laufen lassen
+
+1. Das Fenster von `start.bat` offen lassen.
+2. **`simulation.bat` doppelklicken.** Ein zweites schwarzes Fenster schickt
+   jetzt ein erfundenes Rennen (etwa 9 Minuten).
+3. Du solltest nach ein paar Sekunden über deine Kopfhörer hören:
+   *„Rennen in Monza, 12 Runden. Du startest von Platz 5 …“*
+   Danach kommen Warnungen: Gegner in der Box, Regen, Safety Car, rote Flagge.
+4. Im Browser am PC **http://localhost:8025** öffnen – das ist die Seite, die
+   später auf dem Tablet läuft.
+5. Eine Frage testen: auf der Seite unter „Funk“ z. B. `Kommt Regen?`
+   eintippen und auf **„Fragen“** klicken. Die Antwort wird gesprochen.
+
+**Klingt die Stimme englisch oder verwaschen?** Dann fehlt eine deutsche
+Stimme: Windows-Einstellungen → Zeit und Sprache → Sprache und Region →
+Deutsch → Sprachoptionen → Sprachausgabe herunterladen. Danach `start.bat` neu
+starten.
+
+**Kommt gar kein Ton, im Fenster stehen aber Zeilen mit „FUNK: …“?** Dann
+klemmt die Sprachausgabe. Dieser Teil konnte vorab nicht auf Windows getestet
+werden – bitte das Fenster fotografieren und mir schicken.
+
+**Programm beenden:** das schwarze Fenster einfach schließen (X oben rechts).
+
+> Tipp: Nicht mit der Maus in das schwarze Fenster klicken. Bei manchen
+> Windows-Einstellungen hält ein Klick das Programm an (oben im Fenstertitel
+> steht dann „Auswählen“). Mit der Taste **Esc** läuft es weiter.
+
+## D. Das Spiel einstellen (einmalig)
+
+In F1 25: **Einstellungen → Telemetrie-Einstellungen**
+
+| Einstellung | Wert |
+|---|---|
+| UDP-Telemetrie | **An** |
+| UDP-Broadcast-Modus | Aus |
+| UDP-IP-Adresse | **127.0.0.1** |
+| UDP-Port | **20777** |
+| UDP-Senderate | 20 Hz (mehr geht auch) |
+| UDP-Format | 2025 oder 2026 – beides funktioniert |
+| Ihre Telemetrie | **Öffentlich** |
+
+Dein Kumpel stellt bei sich ebenfalls „Ihre Telemetrie: Öffentlich“ ein. Sonst
+sieht dein Renningenieur seinen Reifenverschleiß nicht.
+
+## E. SimHub umstellen (einmalig)
+
+Bisher hört SimHub direkt auf Port 20777. Ab jetzt hört der Renningenieur dort
+und reicht alles an SimHub auf Port **20778** weiter.
+
+1. SimHub öffnen, links das Spiel **F1 25** auswählen.
+2. In den Einstellungen des Spiels (Knopf zur Spiel- bzw.
+   Telemetrie-Konfiguration) das Feld **UDP-Port** von `20777` auf **`20778`**
+   ändern und speichern.
+
+Die genaue Beschriftung in SimHub konnte ich nicht nachsehen. Wenn du das Feld
+nicht findest, schick mir einen Screenshot der SimHub-Seite.
+
+**Wichtig für den Alltag:** SimHub bekommt seine Daten jetzt nur, wenn
+`start.bat` läuft.
+
+### Prüfen, ob die Daten ankommen
+
+1. `start.bat` schließen, falls es läuft.
+2. Im Spiel auf die Strecke fahren (z. B. Zeitfahren).
+3. **`pruefen.bat` doppelklicken.** Nach 15 Sekunden erscheint eine Liste.
+4. Steht am Ende **„Alle Pakete passen zur Spec.“**, ist alles richtig.
+   Steht dort „Nichts empfangen“, stimmt eine Einstellung aus Teil D nicht.
+   Steht dort „FEHLER“, das Fenster fotografieren und mir schicken.
+
+## F. Mikrofon einrichten
+
+1. USB-Empfänger des Ansteckmikros einstecken.
+2. **`geraete.bat` doppelklicken.** Oben erscheint die Liste der Mikrofone,
+   z. B.:
+   ```
+   === Mikrofone ===
+     1  Mikrofon (USB Audio Device)  [MME]
+     2  Headset (WH-1000XM4)  [MME]
+   ```
+3. Im Programmordner **`config.toml`** mit der rechten Maustaste anklicken →
+   **„Öffnen mit“** → **„Editor“**.
+4. Den Abschnitt `[mikrofon]` suchen und zwischen die Anführungszeichen einen
+   Teil des Namens deines Ansteckmikros schreiben:
+   ```toml
+   [mikrofon]
+   geraet = "USB Audio"
+   ```
+5. Speichern (Strg+S), Editor schließen, `start.bat` neu starten.
+
+Im Fenster steht dann `Mikrofon: …` mit dem gewählten Gerät. Steht dort das
+Sony-Headset, ist der Name falsch geschrieben – das Sony-Mikro darf es nicht
+sein, sonst wird der Ton dumpf.
+
+## G. Funktaste einrichten
+
+Ab Werk ist die Taste **F12** auf der Tastatur die Funktaste: gedrückt halten,
+sprechen, loslassen. Damit kannst du sofort testen.
+
+Für eine Taste am Lenkrad:
+
+1. **`geraete.bat` doppelklicken.** Unten steht
+   „Drücke jetzt die Taste, die du als Funktaste willst“.
+2. Die gewünschte Taste am Lenkrad drücken. Es erscheint z. B.:
+   ```
+   -> "FANATEC Wheel": taste = 7
+   ```
+3. `config.toml` im Editor öffnen (wie in F3) und im Abschnitt `[funktaste]`
+   eintragen:
+   ```toml
+   [funktaste]
+   joystick = "FANATEC"
+   taste = 7
+   ```
+4. Speichern, `start.bat` neu starten.
+
+Die Taste darf im Spiel nicht belegt sein, sonst löst sie dort auch etwas aus.
+
+**So fragst du:** Taste halten → „Wie viele Sekunden zum Auto vor mir?“ →
+loslassen. Im Fenster steht danach `Verstanden: …` und die Antwort wird
+gesprochen. Versteht das Programm einen Fahrernamen falsch, sag mir, was hinter
+„Verstanden:“ stand – das lässt sich in `config.toml` eintragen.
+
+## H. Tablet
+
+1. Tablet ins gleiche WLAN wie den PC.
+2. `start.bat` starten und im Fenster die Zeile
+   `Tablet-Seite: http://192.168.…:8025` ablesen.
+3. Genau diese Adresse im Browser des Tablets eingeben.
+4. Im Browser-Menü „Zum Startbildschirm hinzufügen“ wählen, dann hast du ein
+   Symbol dafür.
+
+Lädt die Seite nicht: In C2 wurde die Firewall-Frage vermutlich abgelehnt.
+Windows-Suche → „App durch die Windows-Firewall zulassen“ → bei „Python“ das
+Häkchen unter „Privat“ setzen.
+
+## I. Ablauf an einem Rennabend
+
+1. SimHub starten.
+2. `start.bat` doppelklicken.
+3. Tablet-Seite öffnen.
+4. F1 25 starten und fahren.
+5. Danach das schwarze Fenster schließen.
+
+Die Rennen werden von selbst gespeichert und erscheinen auf dem Tablet unter
+„Rückblick“.
+
+## J. Schwellen und Sprüche ändern
+
+Beides sind Textdateien im Programmordner; öffnen mit Rechtsklick → „Öffnen
+mit“ → „Editor“. Nach dem Speichern `start.bat` neu starten.
+
+- **`config.toml`**, Abschnitt `[warnungen]`: z. B.
+  `reifenverschleiss = [40, 55, 70]` (bei diesen Prozentwerten wird gewarnt)
+  oder `abstand_hinten = 1.0` (Warnung, wenn der Hintermann näher als eine
+  Sekunde ist). Über jeder Zeile steht eine Erklärung.
+- **`texte.toml`**: jeder Satz, den der Ingenieur sagt. Den Text zwischen den
+  Anführungszeichen ändern; Wörter in `{Klammern}` stehen lassen, die ersetzt
+  das Programm durch Namen und Zahlen.
+
+Hast du dich vertippt und das Programm startet nicht mehr: die Datei löschen.
+Beim nächsten Start wird sie neu mit den Standardwerten angelegt.
+
+## Wenn etwas nicht klappt
+
+| Was du siehst | Was zu tun ist |
+|---|---|
+| „Python wurde nicht gefunden“ | Teil A wiederholen, Häkchen „Add python.exe to PATH“ setzen |
+| „UDP-Port 20777 ist belegt“ | SimHub hört noch auf 20777 → Teil E |
+| „Noch keine Telemetrie“ | Einstellungen im Spiel prüfen → Teil D |
+| Zeilen mit „FUNK:“, aber kein Ton | Fenster fotografieren und schicken (siehe C3) |
+| „Spracheingabe aus: …“ | `installieren.bat` noch einmal laufen lassen |
+| SimHub zeigt nichts mehr an | `start.bat` läuft nicht, oder SimHub steht nicht auf 20778 |
+| „Fehler in config.toml“ | Tippfehler in der Datei → Datei löschen, sie wird neu angelegt |
+
+Kommst du an einer Stelle nicht weiter: das schwarze Fenster fotografieren und
+schicken, dann sehe ich, woran es liegt.

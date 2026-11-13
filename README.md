@@ -13,6 +13,8 @@ Spiel ──UDP 20777──► Renningenieur ──► SimHub (Port 20778, unver
                          └─► Webseite fürs Tablet (http://PC-IP:8025)
 ```
 
+**Neu hier? Die Schritt-für-Schritt-Anleitung mit allen Klicks steht in [ANLEITUNG.md](ANLEITUNG.md).**
+
 ## Stand
 
 | Teil | Zustand |
@@ -35,7 +37,7 @@ nachzustellen ist.
 1. **Python 3.11 oder neuer** von python.org installieren, dabei „Add python.exe to PATH“ ankreuzen.
 2. Diesen Ordner auf den PC kopieren und **`installieren.bat`** doppelklicken.
    Das legt eine eigene Python-Umgebung an, installiert Vosk, sounddevice und
-   pygame und lädt das deutsche Sprachmodell (ca. 45 MB) nach `modelle/`.
+   pygame-ce und lädt das deutsche Sprachmodell (ca. 45 MB) nach `modelle/`.
 3. **`start.bat`** doppelklicken.
 
 Beim ersten Start entstehen `config.toml` (Einstellungen) und `texte.toml`
@@ -75,8 +77,11 @@ Zwei Fenster öffnen:
 
 ```
 start.bat                          Fenster 1: der Renningenieur
-start.bat simulation               Fenster 2: schickt ein simuliertes Rennen
+simulation.bat                     Fenster 2: schickt ein simuliertes Rennen
 ```
+
+Alle Befehle unten gibt es auch als Doppelklick-Datei: `simulation.bat`,
+`pruefen.bat`, `geraete.bat`.
 
 Der Simulator erzeugt echte F1-25-Pakete und schickt sie an Port 20777, also
 durch die ganze Kette samt Weiterleitung. Du fährst „Spieler“ (Startplatz 5),

@@ -1,18 +1,35 @@
 @echo off
-rem Einmalig ausfuehren: legt eine Python-Umgebung an und installiert alles.
 cd /d "%~dp0"
-python --version >nul 2>&1
-if errorlevel 1 (
-  echo Python wurde nicht gefunden. Bitte Python 3.11 oder neuer von python.org installieren
-  echo und dabei "Add python.exe to PATH" ankreuzen.
-  pause
-  exit /b 1
-)
-if not exist .venv python -m venv .venv
-call .venv\Scripts\activate.bat
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m renningenieur modell
+rem Einmalig ausfuehren: legt eine eigene Python-Umgebung an und installiert alles.
+set PY=python
+where py >nul 2>&1 && set PY=py -3
+%PY% --version >nul 2>&1
+if errorlevel 1 goto keinpython
+echo Lege Python-Umgebung an ...
+if not exist .venv\Scripts\python.exe %PY% -m venv .venv
+if not exist .venv\Scripts\python.exe goto keinpython
+set PY=.venv\Scripts\python.exe
+%PY% -m pip install --upgrade pip
 echo.
-echo Fertig. Starten mit start.bat
+echo Installiere Spracherkennung, Mikrofon- und Lenkrad-Anbindung ...
+%PY% -m pip install vosk
+if errorlevel 1 echo WARNUNG: vosk konnte nicht installiert werden - Spracheingabe fehlt dann.
+%PY% -m pip install sounddevice
+if errorlevel 1 echo WARNUNG: sounddevice konnte nicht installiert werden - Mikrofon fehlt dann.
+%PY% -m pip install pygame-ce
+if errorlevel 1 echo WARNUNG: pygame-ce konnte nicht installiert werden - Lenkradtaste fehlt dann.
+echo.
+echo Lade das deutsche Sprachmodell (ca. 45 MB) ...
+%PY% -m renningenieur modell
+echo.
+echo Fertig. Jetzt start.bat doppelklicken.
 pause
+exit /b 0
+:keinpython
+echo.
+echo Python wurde nicht gefunden.
+echo Bitte Python von https://www.python.org/downloads/ installieren und im ersten
+echo Fenster des Installers unten das Haekchen "Add python.exe to PATH" setzen.
+echo Danach diese Datei noch einmal doppelklicken.
+pause
+exit /b 1
