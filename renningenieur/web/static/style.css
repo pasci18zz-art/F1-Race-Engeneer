@@ -1,0 +1,204 @@
+/* Renningenieur - Tablet-Seite. Dunkel als Standard (Rig im abgedunkelten Raum),
+   hell, wenn das Tablet auf helles Design gestellt ist. */
+:root {
+  --flaeche: #111418;
+  --karte: #1a1f26;
+  --karte-2: #232a33;
+  --linie: #2f3843;
+  --text: #eef1f4;
+  --text-2: #b3bcc7;
+  --text-3: #7e8996;
+  --akzent: #4da3ff;
+  --ich: rgba(77, 163, 255, 0.14);
+  --warn: #ffb020;
+  --gefahr: #ff5a52;
+  --gut: #3fcf8e;
+  --balken-rand: rgba(255, 255, 255, 0.18);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --flaeche: #f3f4f6;
+    --karte: #ffffff;
+    --karte-2: #eef0f3;
+    --linie: #d5dae0;
+    --text: #14181d;
+    --text-2: #46505c;
+    --text-3: #6b7683;
+    --akzent: #0b66d0;
+    --ich: rgba(11, 102, 208, 0.10);
+    --warn: #a86400;
+    --gefahr: #c62821;
+    --gut: #11794a;
+    --balken-rand: rgba(0, 0, 0, 0.35);
+    color-scheme: light;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--flaeche);
+  color: var(--text);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+h1 { font-size: 19px; margin: 0; }
+h2 { font-size: 13px; margin: 0 0 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+.leise { color: var(--text-3); font-size: 13px; }
+p.leise { margin: -4px 0 12px; }
+
+.kopf {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding: 10px 16px;
+  background: var(--karte);
+  border-bottom: 1px solid var(--linie);
+}
+.kopf-titel { flex: 1 1 220px; min-width: 0; }
+.marken { display: flex; gap: 6px; flex-wrap: wrap; }
+.marke {
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  border: 1px solid var(--linie); color: var(--text-2); white-space: nowrap;
+}
+.marke.warn { border-color: var(--warn); color: var(--warn); }
+.marke.gefahr { border-color: var(--gefahr); color: var(--gefahr); }
+.marke.gut { border-color: var(--gut); color: var(--gut); }
+.reiter { display: flex; gap: 4px; }
+.reiter button, button, select, input[type=text] {
+  font: inherit; color: var(--text);
+  background: var(--karte-2); border: 1px solid var(--linie);
+  border-radius: 8px; padding: 8px 14px; min-height: 40px;
+}
+button { cursor: pointer; }
+.reiter button.aktiv { background: var(--akzent); border-color: var(--akzent); color: #fff; font-weight: 600; }
+button.zurueck { margin-bottom: 12px; }
+button.gefahr { color: var(--gefahr); border-color: var(--gefahr); background: transparent; margin-top: 8px; }
+
+main { padding: 14px 16px 40px; max-width: 1500px; margin: 0 auto; }
+.ansicht { display: none; }
+.ansicht.aktiv { display: block; }
+.hinweis { padding: 40px 16px; text-align: center; color: var(--text-3); }
+
+.karten { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.karte { background: var(--karte); border: 1px solid var(--linie); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.karte .titel { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+.karte .wert { font-size: 24px; font-weight: 650; line-height: 1.2; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.karte .zusatz { font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.block { background: var(--karte); border: 1px solid var(--linie); border-radius: 10px; padding: 12px; margin-bottom: 14px; min-width: 0; }
+.block-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.zwei-spalten { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.zwei-spalten > .block { margin-bottom: 0; }
+.rollbar { overflow-x: auto; }
+
+/* --- Wetter --- */
+.prognose { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.prog {
+  flex: 0 0 auto; min-width: 92px; padding: 8px 10px; border-radius: 8px;
+  background: var(--karte-2); border: 1px solid var(--linie);
+}
+.prog.regen { border-color: var(--akzent); }
+.prog .wann { font-size: 12px; color: var(--text-3); }
+.prog .was { font-weight: 600; white-space: nowrap; }
+.prog .proz { font-size: 12px; color: var(--text-2); }
+.wetterverlauf { display: flex; gap: 2px; margin-top: 10px; min-height: 30px; }
+.wv {
+  flex-basis: 0; min-width: 0; padding: 5px 8px; font-size: 12px; border-radius: 4px;
+  background: var(--karte-2); border: 1px solid var(--linie);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wv.regen { border-color: var(--akzent); }
+.wv b { font-weight: 600; }
+
+/* --- Strategie-Tabelle --- */
+.legende { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--text-2); }
+.legende span { display: inline-flex; align-items: center; gap: 5px; }
+.punkt {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  font-size: 11px; font-weight: 700; border: 1px solid var(--balken-rand);
+}
+.strat { width: 100%; border-collapse: collapse; }
+.strat th {
+  font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-3); text-align: left; padding: 4px 8px; white-space: nowrap;
+}
+.strat td { padding: 5px 8px; border-top: 1px solid var(--linie); white-space: nowrap; vertical-align: middle; }
+.strat .r { text-align: right; }
+.strat tr.ich td { background: var(--ich); }
+.strat tr.raus td { color: var(--text-3); }
+.strat .pos { font-weight: 700; width: 34px; text-align: right; }
+.strat .name { font-weight: 600; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+.strat .team { display: inline-block; width: 4px; height: 16px; border-radius: 2px; margin-right: 8px; vertical-align: -3px; }
+.strat .box { color: var(--warn); font-weight: 700; font-size: 11px; margin-left: 6px; }
+.strat .mensch { color: var(--akzent); font-size: 11px; margin-left: 6px; }
+.strat td.verlauf { width: 45%; min-width: 260px; padding-right: 4px; }
+.achse th { padding: 0 8px 2px; }
+.achse .skala { position: relative; height: 14px; font-size: 10px; color: var(--text-3); font-weight: 400; letter-spacing: 0; }
+.achse .skala span { position: absolute; transform: translateX(-50%); }
+
+.bahn { position: relative; height: 22px; background: var(--karte-2); border-radius: 4px; }
+.stint {
+  position: absolute; top: 0; bottom: 0;
+  border-radius: 4px; border: 1px solid var(--balken-rand);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; overflow: hidden; cursor: pointer;
+  box-shadow: 0 0 0 1px var(--karte);
+}
+.stint.laeuft { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right-style: dashed; }
+.jetzt { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--akzent); border-radius: 1px; pointer-events: none; }
+.stopp { position: absolute; top: -3px; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-2); transform: translateX(-4px); pointer-events: none; }
+
+.tipp {
+  position: fixed; z-index: 20; max-width: 260px; pointer-events: none;
+  background: var(--karte-2); color: var(--text); border: 1px solid var(--linie);
+  border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.35);
+}
+.tipp b { display: block; }
+
+/* --- Listen --- */
+.liste { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
+.liste li { padding: 6px 2px; border-top: 1px solid var(--linie); font-size: 14px; }
+.liste li:first-child { border-top: 0; }
+.liste .zeit { color: var(--text-3); font-size: 12px; margin-right: 8px; }
+.frage { display: flex; gap: 8px; margin-bottom: 8px; }
+.frage input { flex: 1; min-width: 0; }
+.antwort { color: var(--akzent); }
+
+/* --- Rückblick --- */
+.schalter { font-size: 13px; color: var(--text-2); display: inline-flex; gap: 6px; align-items: center; min-height: 40px; }
+.saison { margin-bottom: 18px; }
+.saison-kopf { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.saison-kopf h3 { margin: 0; font-size: 16px; }
+.saison-kopf button { min-height: 32px; padding: 4px 10px; font-size: 12px; }
+.rennen {
+  display: grid; grid-template-columns: minmax(120px, 1.4fr) minmax(90px, 1fr) 70px minmax(120px, 1.2fr) minmax(70px, .8fr);
+  gap: 10px; align-items: center; width: 100%; text-align: left;
+  background: var(--karte); border: 1px solid var(--linie); border-radius: 10px;
+  padding: 10px 12px; margin-bottom: 6px; min-height: 52px;
+}
+.rennen .ort { font-weight: 650; }
+.rennen .platz { font-size: 18px; font-weight: 700; }
+.folge { display: inline-flex; gap: 3px; align-items: center; }
+.kopf-daten { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-bottom: 14px; }
+.kopf-daten h3 { margin: 0; font-size: 20px; flex-basis: 100%; }
+
+.matrix { border-collapse: collapse; min-width: 100%; }
+.matrix th, .matrix td { padding: 8px 10px; border-top: 1px solid var(--linie); text-align: left; white-space: nowrap; vertical-align: top; }
+.matrix th { font-size: 12px; color: var(--text-2); }
+.matrix .zelle-platz { font-weight: 700; font-size: 16px; margin-right: 8px; }
+.auswahl { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.auswahl select { flex: 1 1 240px; min-width: 0; }
+.vg-spalte { min-width: 0; }
+.vg-spalte .strat td.verlauf { min-width: 180px; width: 60%; }
+.kennzahlen { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0 12px; }
+.kennzahl { background: var(--karte-2); border-radius: 8px; padding: 8px 10px; }
+.kennzahl .titel { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
+.kennzahl .wert { font-weight: 650; font-size: 16px; }
+
+@media (max-width: 760px) {
+  .strat .nur-breit { display: none; }
+  .strat td.verlauf { min-width: 150px; }
+  .rennen { grid-template-columns: 1fr 1fr; }
+}

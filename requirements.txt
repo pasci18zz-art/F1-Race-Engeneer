@@ -1,0 +1,5 @@
+# Nur fuer Spracheingabe und Lenkradtaste noetig. Empfang, Warnungen,
+# Windows-Sprachausgabe, Datenbank und Tablet-Seite brauchen keine Pakete.
+vosk>=0.3.45          # Spracherkennung (offline)
+sounddevice>=0.4.6    # Mikrofonaufnahme
+pygame>=2.5           # Lenkrad-/Controllertasten

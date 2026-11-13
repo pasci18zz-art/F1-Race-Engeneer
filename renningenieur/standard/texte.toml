@@ -1,0 +1,185 @@
+# ============================================================================
+#  Renningenieur - alle Sprüche
+#
+#  Hier kannst du jeden Satz ändern. Regeln:
+#   - Stehen mehrere Sätze in der Liste, wird zufällig einer genommen.
+#   - Wörter in {Klammern} werden vom Programm ersetzt. Welche es pro Satz
+#     gibt, steht im Kommentar darüber. Du kannst sie weglassen, aber keine
+#     neuen erfinden.
+#   - Eine leere Liste [] schaltet die Meldung stumm.
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# Bausteine, die in andere Sätze eingesetzt werden
+# ---------------------------------------------------------------------------
+[teile]
+# {reifen}
+reifen_neu = ["neuen {reifen}"]
+# {reifen} {alter}
+reifen_gebraucht = ["{reifen}, {alter} Runden alt"]
+reifen_eine_runde = ["{reifen}, eine Runde alt"]
+# {sekunden} z. B. "1,3"
+sekunden = ["{sekunden} Sekunden"]
+eine_sekunde = ["eine Sekunde"]
+# {minuten} {sekunden}
+minuten_sekunden = ["{minuten} Minuten {sekunden} Sekunden"]
+eine_minute_sekunden = ["eine Minute {sekunden} Sekunden"]
+# {runden}
+ueberrundet = ["{runden} Runden"]
+ueberrundet_eine = ["eine Runde"]
+
+# ---------------------------------------------------------------------------
+# Automatische Meldungen
+# ---------------------------------------------------------------------------
+[warnung]
+# {name} {platz} {abstand}
+box_vorne = [
+  "{name} vor dir kommt an die Box.",
+  "{name} vor dir biegt in die Box ab.",
+]
+box_hinten = [
+  "{name} hinter dir kommt an die Box. Undercut-Gefahr.",
+  "{name} hinter dir geht an die Box. Achtung Undercut.",
+]
+# Gegner weiter entfernt als der direkte Vorder-/Hintermann
+box_weiter_vorne = ["{name} auf Platz {platz} kommt an die Box."]
+box_weiter_hinten = ["{name} auf Platz {platz} kommt an die Box."]
+# {name} {reifen} {platz} {abstand}
+box_raus_hinter_dir = [
+  "{name} ist wieder draußen, auf {reifen}. Er liegt {abstand} hinter dir.",
+]
+box_raus_vor_dir = [
+  "{name} ist wieder draußen, auf {reifen}. Er liegt {abstand} vor dir.",
+]
+# Eigener Stopp: {platz} {vorne_name} {vorne_abstand} {hinten_name} {hinten_abstand}
+eigener_stopp = ["Du bist wieder draußen auf Platz {platz}."]
+eigener_stopp_vorne = ["Vor dir {vorne_name}, {vorne_abstand}."]
+eigener_stopp_hinten = ["Hinter dir {hinten_name}, {hinten_abstand}."]
+
+# {prozent} {reifen_position}
+reifenverschleiss = [
+  "Reifenverschleiß bei {prozent} Prozent, {reifen_position} am stärksten.",
+]
+
+# {minuten} {art} {prozent}
+regen_kommt = [
+  "Regen in etwa {minuten} Minuten. Erwartet wird {art}.",
+]
+regen_gleich = ["Regen setzt jeden Moment ein. Erwartet wird {art}."]
+# {art}
+regen_beginnt = ["Es regnet jetzt: {art}."]
+regen_staerker = ["Der Regen wird stärker: {art}."]
+regen_schwaecher = ["Der Regen lässt nach: {art}."]
+regen_vorbei = ["Der Regen hat aufgehört."]
+# {minuten}
+abtrocknen = ["In etwa {minuten} Minuten hört der Regen auf."]
+
+# {name} {abstand}
+abstand_hinten = [
+  "{name} ist {abstand} hinter dir.",
+  "{name} hinter dir, {abstand}.",
+]
+
+safety_car = ["Safety Car ist draußen."]
+virtuelles_safety_car = ["Virtuelles Safety Car."]
+safety_car_kommt_rein = ["Safety Car kommt in dieser Runde rein."]
+safety_car_ende = ["Strecke ist wieder frei."]
+virtuelles_safety_car_ende = ["Virtuelles Safety Car endet."]
+
+# Rote Flagge: {platz} {reifen_beschreibung} {prozent}
+rote_flagge = ["Rote Flagge. Du bist auf Platz {platz}."]
+rote_flagge_reifen = [
+  "Deine Reifen: {reifen_beschreibung}, {prozent} Prozent Verschleiß.",
+]
+# Restart nach roter Flagge - es kommen nur Sätze, für die Daten da sind.
+# {platz} {reifen_beschreibung}
+restart = ["Restart. Du startest von Platz {platz} auf {reifen_beschreibung}."]
+# {name} {reifen_beschreibung}
+restart_vorne = ["Vor dir {name} auf {reifen_beschreibung}."]
+restart_hinten = ["Hinter dir {name} auf {reifen_beschreibung}."]
+restart_fuehrung = ["Du führst das Rennen an."]
+
+# Rennstart: {strecke} {runden} {platz} {reifen_beschreibung}
+rennstart = [
+  "Rennen in {strecke}, {runden} Runden. Du startest von Platz {platz} auf {reifen_beschreibung}.",
+]
+letzte_runde = ["Letzte Runde."]
+# {platz}
+ziel = ["Zielflagge. Platz {platz}."]
+
+# {sekunden}
+strafe_zeit = ["Du hast {sekunden} Sekunden Zeitstrafe bekommen."]
+strafe_durchfahrt = ["Du hast eine Durchfahrtsstrafe bekommen."]
+strafe_stop_go = ["Du hast eine Stop-and-Go-Strafe bekommen."]
+# {name} {sekunden}
+strafe_gegner_vorne = ["{name} vor dir hat {sekunden} Sekunden Zeitstrafe."]
+strafe_gegner_hinten = ["{name} hinter dir hat {sekunden} Sekunden Zeitstrafe."]
+
+format_fehler = ["Achtung, das Telemetrie-Format passt nicht. Bitte im Programmfenster nachsehen."]
+
+# ---------------------------------------------------------------------------
+# Antworten auf Fragen
+# ---------------------------------------------------------------------------
+[antwort]
+nicht_verstanden = ["Das habe ich nicht verstanden.", "Bitte noch mal."]
+keine_daten = ["Dazu habe ich gerade keine Daten."]
+kein_fahrer = ["Ich weiß nicht, welchen Fahrer du meinst."]
+
+# --- Wetter: {art} {strecke_temp} {luft_temp} {minuten} {prozent} ---
+wetter_jetzt = ["Aktuell {art}, Strecke {strecke_temp} Grad."]
+regen_in = ["Regen in etwa {minuten} Minuten, dann {art}."]
+regen_gleich = ["Regen setzt jeden Moment ein."]
+kein_regen = ["Kein Regen in Sicht."]
+bleibt_nass = ["Es bleibt vorerst nass."]
+trocken_in = ["In etwa {minuten} Minuten hört der Regen auf."]
+prognose_ungenau = ["Die Prognose ist nur ungefähr."]
+
+# --- Abstände: {name} {abstand} {platz} ---
+abstand_vorne = ["{name} vor dir: {abstand}."]
+abstand_hinten = ["{name} hinter dir: {abstand}."]
+niemand_vorne = ["Du führst, vor dir ist niemand."]
+niemand_hinten = ["Hinter dir ist niemand."]
+abstand_fuehrender = ["{abstand} Rückstand auf {name} an der Spitze."]
+du_fuehrst = ["Du führst das Rennen an."]
+abstand_fahrer_vor_dir = ["{name} liegt auf Platz {platz}, {abstand} vor dir."]
+abstand_fahrer_hinter_dir = ["{name} liegt auf Platz {platz}, {abstand} hinter dir."]
+
+# --- Entwicklung über Runden: {runden} {name} {zeit} {abstand} ---
+verloren = ["In den letzten {runden} Runden hast du {zeit} auf {name} verloren."]
+gewonnen = ["In den letzten {runden} Runden hast du {zeit} auf {name} gewonnen."]
+gleich_schnell = ["In den letzten {runden} Runden wart ihr gleich schnell, du und {name}."]
+verloren_eine_runde = ["In der letzten Runde hast du {zeit} auf {name} verloren."]
+gewonnen_eine_runde = ["In der letzten Runde hast du {zeit} auf {name} gewonnen."]
+mit_boxenstopp = ["Da ist ein Boxenstopp eingerechnet."]
+keine_rundenzeiten = ["Dafür fehlen mir noch gemeinsame Rundenzeiten mit {name}."]
+
+# --- Reifen: {reifen_beschreibung} {vl} {vr} {hl} {hr} {name} {platz} ---
+reifen_eigene = ["Du fährst {reifen_beschreibung}."]
+verschleiss_eigene = ["Verschleiß vorne {vl} und {vr}, hinten {hl} und {hr} Prozent."]
+reifen_fahrer = ["{name} fährt {reifen_beschreibung}."]
+verschleiss_fahrer = ["Verschleiß bis zu {prozent} Prozent."]
+# Übersicht aller Fahrer: {reifen} {namen}
+reifen_gruppe = ["{reifen}: {namen}."]
+
+# --- Sonstiges ---
+# {platz} {anzahl}
+position = ["Du bist auf Platz {platz}."]
+# {runden} {runde} {gesamt}
+runden_noch = ["Noch {runden} Runden. Du bist in Runde {runde} von {gesamt}."]
+letzte_runde = ["Das ist die letzte Runde."]
+noch_eine_runde = ["Noch eine Runde nach dieser."]
+# {runden} z. B. "1,2"
+sprit_plus = ["Der Sprit reicht, du hast {runden} Runden Reserve."]
+sprit_minus = ["Der Sprit ist knapp, es fehlen {runden} Runden."]
+# {ideal} {spaetestens} {platz}
+boxenfenster = ["Boxenfenster laut Strategie: ideal Runde {ideal}, spätestens Runde {spaetestens}."]
+boxen_rueckkehr = ["Nach einem Stopp kämst du jetzt etwa auf Platz {platz} zurück."]
+kein_boxenfenster = ["Aktuell ist kein Boxenstopp geplant."]
+kein_schaden = ["Kein Schaden am Auto."]
+# {liste} z. B. "Frontflügel links 20 Prozent, Unterboden 5 Prozent"
+schaden = ["Schaden: {liste}."]
+keine_strafen = ["Du hast keine Strafen."]
+# {sekunden}
+strafen = ["Du hast {sekunden} Sekunden Strafe."]
+# {letzte} {beste}
+rundenzeit = ["Letzte Runde {letzte}, deine beste {beste}."]

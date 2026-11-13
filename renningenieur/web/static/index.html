@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renningenieur</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="kopf">
+  <div class="kopf-titel">
+    <h1 id="titel">Renningenieur</h1>
+    <div id="untertitel" class="leise">Warte auf Telemetrie …</div>
+  </div>
+  <div id="marken" class="marken"></div>
+  <nav class="reiter" role="tablist">
+    <button data-reiter="live" class="aktiv" role="tab">Live</button>
+    <button data-reiter="rueckblick" role="tab">Rückblick</button>
+    <button data-reiter="vergleich" role="tab">Vergleich</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ================= LIVE ================= -->
+  <section id="live" class="ansicht aktiv">
+    <div id="live-leer" class="hinweis">
+      Noch keine Daten. Sobald das Spiel in einer Session ist, erscheint hier die Übersicht.
+    </div>
+    <div id="live-inhalt" hidden>
+      <div class="karten">
+        <div class="karte" id="k-runde"></div>
+        <div class="karte" id="k-wetter"></div>
+        <div class="karte" id="k-vorne"></div>
+        <div class="karte" id="k-hinten"></div>
+        <div class="karte" id="k-reifen"></div>
+      </div>
+
+      <div class="block">
+        <h2>Wetter</h2>
+        <div id="prognose" class="prognose"></div>
+        <div id="wetterverlauf" class="wetterverlauf"></div>
+      </div>
+
+      <div class="block">
+        <div class="block-kopf">
+          <h2>Strategie</h2>
+          <div class="legende" id="legende"></div>
+        </div>
+        <div id="strategie"></div>
+      </div>
+
+      <div class="zwei-spalten">
+        <div class="block">
+          <h2>Funk</h2>
+          <form id="frage-form" class="frage">
+            <input id="frage-text" type="text" placeholder="Frage eintippen, z. B. „Kommt Regen?“" autocomplete="off">
+            <button type="submit">Fragen</button>
+          </form>
+          <ul id="funk" class="liste"></ul>
+        </div>
+        <div class="block">
+          <h2>Ereignisse</h2>
+          <ul id="ereignisse" class="liste"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= RÜCKBLICK ================= -->
+  <section id="rueckblick" class="ansicht">
+    <div id="rb-liste">
+      <div class="block-kopf">
+        <h2>Gespeicherte Sessions</h2>
+        <label class="schalter"><input type="checkbox" id="rb-nur-rennen" checked> nur Rennen</label>
+      </div>
+      <div id="rb-saisons"></div>
+    </div>
+    <div id="rb-detail" hidden>
+      <button id="rb-zurueck" class="zurueck">‹ Zurück zur Liste</button>
+      <div id="rb-kopf"></div>
+      <div class="block">
+        <h2>Wetterverlauf</h2>
+        <div id="rb-wetter" class="wetterverlauf"></div>
+      </div>
+      <div class="block">
+        <div class="block-kopf">
+          <h2>Strategie aller Fahrer</h2>
+          <div class="legende" id="rb-legende"></div>
+        </div>
+        <div id="rb-strategie"></div>
+      </div>
+      <div class="block">
+        <h2>Ereignisse</h2>
+        <ul id="rb-ereignisse" class="liste"></ul>
+      </div>
+      <button id="rb-loeschen" class="gefahr">Diese Session löschen</button>
+    </div>
+  </section>
+
+  <!-- ================= VERGLEICH ================= -->
+  <section id="vergleich" class="ansicht">
+    <div class="block">
+      <h2>Saisons vergleichen</h2>
+      <p class="leise">Eine Zeile pro Strecke, eine Spalte pro Saison: dein Ergebnis, deine Reifenfolge, Stopps und Wetter.</p>
+      <div id="vg-saisons" class="rollbar"></div>
+    </div>
+    <div class="block">
+      <h2>Zwei Rennen vergleichen</h2>
+      <div class="auswahl">
+        <select id="vg-a" aria-label="Rennen A"></select>
+        <span class="leise">gegen</span>
+        <select id="vg-b" aria-label="Rennen B"></select>
+      </div>
+      <div id="vg-rennen" class="zwei-spalten"></div>
+    </div>
+  </section>
+</main>
+
+<div id="tipp" class="tipp" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

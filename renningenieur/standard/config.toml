@@ -1,0 +1,142 @@
+# ============================================================================
+#  Renningenieur - Einstellungen
+#
+#  Diese Datei darfst du frei ändern. Zeilen mit # am Anfang sind Kommentare.
+#  Nach einer Änderung das Programm neu starten.
+#  Fehlt ein Eintrag, gilt der Standardwert aus dem Programm.
+# ============================================================================
+
+[udp]
+# Port, an den das Spiel die Telemetrie schickt (im Spiel: Einstellungen >
+# Telemetrie > UDP-Port). Standard im Spiel ist 20777.
+port = 20777
+host = "0.0.0.0"
+# Jedes Paket wird unverändert an diese Adressen weitergereicht.
+# SimHub muss dafür auf Port 20778 hören (siehe README).
+weiterleiten = ["127.0.0.1:20778"]
+
+[sprachausgabe]
+# "windows" = Windows-Sprachausgabe (SAPI), "konsole" = nur Text im Fenster,
+# "aus" = stumm
+engine = "windows"
+# Teil des Stimmennamens, z. B. "Hedda". Leer = erste deutsche Stimme.
+stimme = ""
+# Sprechtempo von -10 (langsam) bis 10 (schnell)
+tempo = 2
+# Lautstärke 0 bis 100
+lautstaerke = 100
+# Teil des Gerätenamens, z. B. "WH-1000". Leer = Windows-Standardgerät.
+ausgabegeraet = ""
+# Meldungen, die länger als so viele Sekunden warten mussten, verfallen.
+max_wartezeit = 20
+
+[mikrofon]
+# Teil des Gerätenamens (z. B. "APEXEL" oder "USB") oder die Nummer aus
+# "python -m renningenieur geraete". Leer = Windows-Standardmikrofon.
+geraet = ""
+# So viel wird VOR dem Tastendruck mit aufgenommen (Satzanfang).
+vorlauf_sekunden = 0.5
+# So lange läuft die Aufnahme nach dem Loslassen weiter.
+nachlauf_sekunden = 0.3
+# Längste Aufnahme
+max_sekunden = 10
+
+[spracherkennung]
+aktiv = true
+# Ordner mit dem Vosk-Modell (siehe README)
+modell = "modelle/vosk-model-small-de-0.15"
+# true = Vosk hört nur auf die Wörter, die das Programm kennt. Das ist bei
+# Nebengeräuschen robuster, Fahrernamen müssen dann aber als Alias
+# eingetragen sein (siehe [fahrer.aliase]).
+wortliste = false
+
+[funktaste]
+# Lenkrad-/Controllertaste. Mit "python -m renningenieur geraete" findest du
+# Gerätename und Tastennummer heraus.
+joystick = ""        # Teil des Gerätenamens, leer = jedes Gerät
+taste = -1           # Tastennummer, -1 = keine Lenkradtaste
+# Tastatur-Taste als Alternative, z. B. "f12", "leertaste", "y". Leer = keine.
+tastatur = "f12"
+# "halten" = sprechen, solange gedrückt. "umschalten" = einmal drücken zum
+# Starten, noch einmal zum Beenden.
+modus = "halten"
+
+[warnungen]
+# --- Gegner fährt in die Box ---
+box_gegner = true
+# So viele Plätze vor und hinter dir werden beobachtet (1 = direkter Gegner).
+box_positionen = 1
+# Nur melden, wenn der Gegner höchstens so viele Sekunden entfernt ist
+# (0 = immer melden).
+box_max_abstand = 0
+# Nach dem Stopp ansagen, auf welchen Reifen und wo er wieder herauskommt.
+box_ausfahrt = true
+
+# --- Reifenverschleiß (Prozent des am stärksten abgenutzten Reifens) ---
+reifenverschleiss = [40, 55, 70]
+
+# --- Regen ---
+# Bei diesen Restminuten bis zum Regen wird gewarnt.
+regen_minuten = [10, 5, 2]
+# Auch melden, wenn es bald wieder trocken wird.
+abtrocknen = true
+
+# --- Hintermann ---
+# Warnen, wenn der Hintermann näher als so viele Sekunden ist (0 = aus).
+abstand_hinten = 1.0
+# Erst wieder warnen, wenn er zwischendurch weiter weg war als:
+abstand_hinten_entwarnung = 1.5
+# Mindestpause zwischen zwei Warnungen in Sekunden
+abstand_hinten_pause = 45
+# Erst ab dieser Runde (am Start sind alle dicht beieinander)
+abstand_hinten_ab_runde = 2
+
+# --- Sonstiges ---
+safety_car = true
+rote_flagge = true
+strafen = true
+letzte_runde = true
+# Begrüßung mit Startplatz, Reifen und Wetter zu Beginn eines Rennens
+rennstart_info = true
+
+[fahrer]
+# Name deines Mitspielers, wie er im Spiel angezeigt wird. Leer = automatisch
+# (der andere menschliche Fahrer im Feld). Fragen wie "Wie viel habe ich auf
+# meinen Kumpel verloren" beziehen sich auf ihn.
+kumpel = ""
+
+# Wie die Spracherkennung einen Namen versteht, weicht oft vom Namen ab.
+# Trage hier ein, was erkannt wurde (steht im Programmfenster nach
+# "Verstanden:"), und zu welchem Fahrer es gehört.
+[fahrer.aliase]
+"Verstappen" = ["verstappen", "fair stappen", "max"]
+"Leclerc" = ["leclerc", "le clerc", "leklär", "charles"]
+"Hamilton" = ["hamilton", "lewis"]
+"Norris" = ["norris", "lando"]
+"Piastri" = ["piastri", "oscar"]
+"Russell" = ["russell", "rassel", "george"]
+"Antonelli" = ["antonelli", "kimi"]
+"Alonso" = ["alonso", "fernando"]
+"Stroll" = ["stroll", "lance"]
+"Sainz" = ["sainz", "seins", "carlos"]
+"Albon" = ["albon", "alex"]
+"Gasly" = ["gasly", "gasli", "pierre"]
+"Hülkenberg" = ["hülkenberg", "hulkenberg", "nico"]
+"Tsunoda" = ["tsunoda", "yuki"]
+"Ocon" = ["ocon", "okon", "esteban"]
+"Bearman" = ["bearman", "bärmann", "oliver"]
+"Lawson" = ["lawson", "liam"]
+"Hadjar" = ["hadjar", "isack"]
+"Bortoleto" = ["bortoleto", "gabriel"]
+"Colapinto" = ["colapinto", "franco"]
+"Doohan" = ["doohan", "jack"]
+
+[datenbank]
+aktiv = true
+datei = "renningenieur.sqlite"
+
+[web]
+aktiv = true
+# Die Seite ist dann unter http://<IP-des-PCs>:8025 erreichbar.
+port = 8025
+host = "0.0.0.0"
