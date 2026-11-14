@@ -123,6 +123,12 @@ format_fehler = ["Achtung, das Telemetrie-Format passt nicht. Bitte im Programmf
 [antwort]
 nicht_verstanden = ["Das habe ich nicht verstanden.", "Bitte noch mal."]
 nichts_gehoert = ["Ich habe nichts gehört.", "Bitte noch mal."]
+kein_mitspieler = ["Ich finde keinen Mitspieler im Rennen."]
+kein_teamkollege = ["Ich finde keinen Teamkollegen im Rennen."]
+# {platz}
+niemand_auf_platz = ["Auf Platz {platz} liegt gerade niemand."]
+# {name}
+fahrer_nicht_im_rennen = ["{name} finde ich gerade nicht im Rennen."]
 keine_daten = ["Dazu habe ich gerade keine Daten."]
 kein_fahrer = ["Ich weiß nicht, welchen Fahrer du meinst."]
 

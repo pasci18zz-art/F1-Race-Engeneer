@@ -17,6 +17,7 @@
     <button data-reiter="live" class="aktiv" role="tab">Live</button>
     <button data-reiter="rueckblick" role="tab">Rückblick</button>
     <button data-reiter="vergleich" role="tab">Vergleich</button>
+    <button data-reiter="befehle" role="tab">Befehle</button>
   </nav>
 </header>
 
@@ -115,6 +116,47 @@
       <div id="vg-rennen" class="zwei-spalten"></div>
     </div>
   </section>
+
+  <!-- ================= BEFEHLE ================= -->
+  <section id="befehle" class="ansicht">
+    <div class="block">
+      <h2>Frage ausprobieren</h2>
+      <p class="leise" id="bf-daten-hinweis"></p>
+      <form id="bf-test-form" class="frage">
+        <input id="bf-test-text" type="text" placeholder="z. B. „Wie sind meine Reifen?“" autocomplete="off">
+        <button type="submit" class="primaer">Fragen</button>
+      </form>
+      <label class="schalter"><input type="checkbox" id="bf-test-sprechen"> Antwort auch in den Kopfhörern sprechen (nur bei laufendem Spiel)</label>
+      <div id="bf-test-ergebnis" class="bf-ergebnis" hidden></div>
+    </div>
+
+    <div class="block">
+      <div class="block-kopf">
+        <h2>Eigene Befehle</h2>
+        <button id="bf-neu" class="primaer" type="button">+ Neuer Befehl</button>
+      </div>
+      <p class="leise">Eigene Befehle haben Vorrang vor den eingebauten. Sie gelten sofort, ohne Neustart.</p>
+      <div id="bf-eigene"></div>
+    </div>
+
+    <div id="bf-editor" class="block bf-editor" hidden></div>
+
+    <div class="block">
+      <div class="block-kopf">
+        <h2>Eingebaute Befehle</h2>
+        <input id="bf-suche" type="search" placeholder="Suchen …" aria-label="Befehle durchsuchen">
+      </div>
+      <p class="leise">Tippe auf ein Beispiel, um es auszuprobieren. Die Wörter unter „Springt an bei“ sind
+        Wortanfänge: „reifen“ passt auch auf „Reifenverschleiß“.</p>
+      <div id="bf-eingebaut"></div>
+    </div>
+
+    <div class="block">
+      <h2>So nennst du einen Fahrer</h2>
+      <p class="leise">Bei vielen Befehlen kannst du sagen, wen du meinst.</p>
+      <table class="matrix" id="bf-fahrer-nennen"></table>
+    </div>
+  </section>
 </main>
 
 <div id="mikro-panel" class="mikro-panel" aria-live="polite" hidden>
@@ -136,5 +178,6 @@
 <div id="tipp" class="tipp" hidden></div>
 <script src="app.js"></script>
 <script src="mikro.js"></script>
+<script src="befehle.js"></script>
 </body>
 </html>

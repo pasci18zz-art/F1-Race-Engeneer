@@ -17,21 +17,13 @@ from __future__ import annotations
 
 import difflib
 import re
-import unicodedata
 
 from . import analyse
 from . import formulierung as f
+from .befehle import EigeneBefehle, norm
 from .config import Texte
 from .telemetrie import konstanten as k
 from .zustand import Auto, Rennzustand
-
-
-def norm(text: str) -> str:
-    """ "Hülkenberg!" -> "hulkenberg" """
-    text = text.lower().replace("ß", "ss")
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(c for c in text if not unicodedata.combining(c))
-    return re.sub(r"[^a-z0-9]+", " ", text).strip()
 
 
 # --- Zahlen ---------------------------------------------------------------
@@ -192,10 +184,12 @@ BEISPIELE = [
 
 class Fragen:
     def __init__(self, zustand: Rennzustand, cfg_fahrer: dict, texte: Texte,
-                 cfg_strategie: dict | None = None):
+                 cfg_strategie: dict | None = None, eigene: EigeneBefehle | None = None):
         self.z = zustand
         self.t = texte
         self.cfg_strategie = cfg_strategie or {}
+        self.eigene = eigene
+        self._cfg_fahrer = cfg_fahrer
         self.kumpel_name = norm(cfg_fahrer.get("kumpel", ""))
         # Alias (vereinheitlicht) -> Fahrername (vereinheitlicht)
         self.aliase: dict[str, str] = {}
@@ -204,25 +198,38 @@ class Fragen:
                 self.aliase[norm(alias)] = norm(fahrer)
 
     # ------------------------------------------------------------------
+    def fuer_zustand(self, zustand: Rennzustand) -> "Fragen":
+        """Dieselben Einstellungen und Befehle, aber auf einem anderen Rennzustand
+        (z. B. den Beispieldaten fuer die Vorschau im Browser)."""
+        return Fragen(zustand, self._cfg_fahrer, self.t, self.cfg_strategie, self.eigene)
+
     def antwort(self, frage: str) -> str:
+        return self.antwort_mit_quelle(frage)[0]
+
+    def antwort_mit_quelle(self, frage: str) -> tuple[str, tuple[str, str]]:
+        """Antwort und woher sie kam: ("eigen", Name), ("eingebaut", Thema) oder ("keine", "")."""
         text = norm(frage)
         if not text:
-            return self.t.sag("antwort.nicht_verstanden")
+            return self.t.sag("antwort.nicht_verstanden"), ("keine", "")
         woerter = text.split()
-        thema = self._thema(text, woerter)
+        eigener = self.eigene.finde(woerter) if self.eigene else None
+        thema = None if eigener else self._thema(text, woerter)
         with self.z.lock:
             ich = self.z.spieler
             if ich is None:
-                return self.t.sag("antwort.keine_daten")
+                return self.t.sag("antwort.keine_daten"), ("keine", "")
             bezug, auto = self._bezug(text, woerter, ich)
+            if eigener:
+                antwort = self.eigene.antwort(eigener, self, ich, bezug, auto)
+                return antwort or self.t.sag("antwort.keine_daten"), ("eigen", eigener["name"])
             if thema is None:
                 if bezug in ("vorne", "hinten", "fuehrender", "fahrer"):
                     thema = "abstand"  # "Was ist mit Verstappen?" -> Abstand
                 else:
-                    return self.t.sag("antwort.nicht_verstanden")
+                    return self.t.sag("antwort.nicht_verstanden"), ("keine", "")
             methode = getattr(self, "_antwort_" + thema)
             antwort = methode(text, woerter, ich, bezug, auto)
-        return antwort or self.t.sag("antwort.keine_daten")
+        return antwort or self.t.sag("antwort.keine_daten"), ("eingebaut", thema)
 
     def thema(self, frage: str) -> str | None:
         text = norm(frage)
@@ -1016,6 +1023,8 @@ class Fragen:
                         "hat", "fährt", "abstand", "sekunden", "reifen"])
         for alias in self.aliase:
             woerter.update(alias.split())
+        if self.eigene:
+            woerter.update(self.eigene.woerter())
         for team in k.TEAMS.values():
             woerter.update(team["name"].lower().split())
         return sorted(woerter)

@@ -210,6 +210,8 @@ Die Regenprognose des Spiels kommt in Schritten von 5 Minuten (danach 15).
 
 ## Tablet
 
+Auf der Seite gibt es außerdem den Reiter **Befehle**: alle eingebauten Befehle mit Beispielen zum Ausprobieren und ein Baukasten für eigene Befehle (siehe `ANLEITUNG.md`, Abschnitt P).
+
 Beim Start steht im Fenster die Adresse, z. B. `http://192.168.178.20:8025`.
 Die im Browser des Tablets öffnen (gleiches WLAN). Fragt die Windows-Firewall
 beim ersten Start, Python für private Netzwerke zulassen.
@@ -250,6 +252,7 @@ Jedes Modul hat eine Aufgabe und lässt sich einzeln austauschen.
 | `auswertung.py` | Pakete → Zustand und Ereignisse (Boxeneinfahrt, rote Flagge, …) |
 | `regeln.py` | automatische Warnungen, eine Methode pro Regel |
 | `fragen.py` | Fragen verstehen und beantworten |
+| `befehle.py` | eigene Befehle (Auslöser, Fahrer, Infos, Antworttext) und Katalog der eingebauten |
 | `analyse.py` | Tempo, Boxenverlust, Reifenabbau, Rückkehrplatz |
 | `formulierung.py` | Zahlen und Zustände in sprechbare Bausteine |
 | `sprache/funk.py` | Warteschlange mit Priorität und Verfallszeit |
@@ -275,7 +278,7 @@ der Python-Standardbibliothek aus.
 python -m unittest discover -s tests -t .
 ```
 
-159 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
+185 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
 UDP-Sockets, jede Regel mit ihren Schwellen, die Fragen, komplette simulierte
 Rennen von Paket bis Datenbank, Rückblenden, Webserver.
 

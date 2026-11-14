@@ -59,7 +59,7 @@ def befehl_start(args) -> int:
         datenbank = Datenbank(str(ordner / cfg["datenbank"]["datei"]))
         datenbank.start()
 
-    kern = Kern(cfg, texte, stimme_erzeugen(cfg["sprachausgabe"], ordner), datenbank)
+    kern = Kern(cfg, texte, stimme_erzeugen(cfg["sprachausgabe"], ordner), datenbank, ordner)
     kern.funk.start()
 
     aufnahme = Aufnahme(args.aufnahme) if args.aufnahme else None

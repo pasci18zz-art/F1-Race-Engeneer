@@ -49,6 +49,7 @@ In diesem Ordner liegen ab jetzt alle Dateien, von denen unten die Rede ist:
 | `mikrofontest.bat` | Mikrofon und Spracherkennung ausprobieren (siehe N) |
 | `whisper.bat` | genauere Spracherkennung installieren (siehe N) |
 | rote Taste auf der Tablet-Seite | Fragen über das Tablet (siehe O) |
+| Reiter „Befehle“ auf der Tablet-Seite | Befehle ansehen und eigene bauen (siehe P) |
 | `pruefen.bat` | prüft, ob die Daten des Spiels richtig ankommen |
 | `config.toml` | deine Einstellungen (entsteht beim ersten Start) |
 | `texte.toml` | alle Sprüche (entsteht beim ersten Start) |
@@ -442,6 +443,67 @@ beschränkt und gilt für keine echten Webseiten.
 
 Der Bildschirm des Tablets muss an bleiben und die Seite im Vordergrund
 sein. Sonst stoppt Android das Mikrofon.
+
+## P. Befehle im Browser: ansehen, ausprobieren, eigene bauen
+
+Auf der Tablet-Seite (oder am PC unter `http://localhost:8025`) gibt es oben
+den Reiter **Befehle**. Er hat vier Teile:
+
+1. **Frage ausprobieren:** Du tippst eine Frage ein und siehst die Antwort und
+   *welcher* Befehl geantwortet hat. Mit dem Haken „auch in den Kopfhörern
+   sprechen“ hörst du sie zusätzlich (nur bei laufendem Spiel).
+2. **Eigene Befehle:** Deine selbst gebauten Befehle, jeweils mit Schalter
+   „aktiv“, „Testen“, „Bearbeiten“ und „Löschen“.
+3. **Eingebaute Befehle:** Alle Befehle des Programms mit Erklärung, Beispielen
+   zum Antippen und den Wörtern, bei denen sie anspringen.
+4. **So nennst du einen Fahrer:** Welche Formulierungen für Fahrer es gibt.
+
+Läuft gerade kein Spiel, rechnet die Seite mit **Beispieldaten** (einem
+simulierten Rennen). So kannst du Befehle auch am Schreibtisch bauen und
+testen.
+
+**Einen eigenen Befehl bauen** (Knopf „+ Neuer Befehl“):
+1. **Name:** zum Beispiel „Reifen der Nachbarn“.
+2. **Auslöser:** Die Wörter, bei denen er antworten soll, zum Beispiel
+   `reifen nachbar`. Alle Wörter eines Auslösers müssen in deiner Frage
+   vorkommen, die Reihenfolge ist egal. Schreib den Wortanfang: `nachbar` passt
+   auch auf „Nachbarn“. Du kannst mehrere Auslöser anlegen. Tippe das Wort ein
+   und drücke Enter oder „Hinzufügen“.
+3. **Fahrer:** Von wem die Infos kommen. Zum Beispiel „Ich“, „Der Fahrer vor
+   mir“, „Der Fahrer, den ich in der Frage nenne“, ein fester Platz, ein fester
+   Fahrer, „Die ersten 3“ oder „Die Fahrer um mich herum“.
+4. **Infos:** Ein Haken bei allem, was er sagen soll, zum Beispiel Platz,
+   Reifenmischung, Reifenalter, Reifenverschleiß, Abstand zu dir, Strafen,
+   Sprit, Wetter, Regen. Allgemeine Infos wie Wetter brauchen keinen Fahrer.
+5. **Antwort:** Entweder automatisch zusammengestellt („Norris: Platz 2, Reifen
+   Medium, …“) oder mit **eigenem Text**. Im eigenen Text setzt du Werte mit
+   Platzhaltern ein, zum Beispiel `{name} liegt auf {position} und fährt {reifen}.`
+   Die Platzhalter zum Antippen stehen unter dem Textfeld.
+6. **Vorschau:** Unten steht sofort, wie die Antwort klingt. Im Feld darüber
+   gibst du eine Beispielfrage ein, zum Beispiel „Steckbrief von Hamilton“.
+7. **Speichern.** Der Befehl gilt sofort, ohne Neustart, per Tablet-Taste und
+   per Tippen.
+
+**Beispiele**
+| Name | Auslöser | Fahrer | Infos | Frage → Antwort |
+|---|---|---|---|---|
+| Nachbarn | `reifen nachbar` | Die Fahrer um mich herum (1) | Platz, Abstand zu dir, Reifenmischung | „Wie sind die Reifen meiner Nachbarn?“ → „Norris: Platz 2, 5,3 Sekunden vor dir, Reifen Medium. Kumpel: Platz 4, …“ |
+| Steckbrief | `steckbrief` | Der Fahrer, den ich nenne | Platz, Team, Reifenmischung, Reifenalter, Verschleiß | „Steckbrief von Verstappen“ → „Verstappen: Platz 1, Team Red Bull, Reifen Soft, …“ |
+| Lagebericht | `lagebericht` | Ich | Platz, Abstand nach vorne, Wetter, Regen, Restrunden | „Lagebericht“ → „Platz 3, 5,3 Sekunden hinter dem Vordermann. Wetter leicht bewölkt … Noch 6 Runden.“ |
+
+**Gut zu wissen**
+- Eigene Befehle haben **Vorrang** vor den eingebauten. Legst du `wetter` als
+  Auslöser an, antwortet dein Befehl statt dem eingebauten.
+- Mit dem Schalter „aktiv“ nimmst du einen Befehl vorübergehend aus dem Spiel.
+- Gespeichert werden sie in `eigene_befehle.json` im Programmordner. Die Datei
+  kannst du sichern oder auf einen anderen PC kopieren.
+- Bei der Sprachsteuerung funktionieren sie genauso. Hast du bei Vosk
+  `wortliste = true` eingestellt, werden die Wörter deiner Auslöser automatisch
+  mit aufgenommen.
+- Wählst du Auslöser, die auch in anderen Fragen vorkommen („reifen“), antwortet
+  dein Befehl auch dort. Mit „Frage ausprobieren“ siehst du sofort, was passiert.
+- Infos zu anderen Mitspielern, etwa deinem Kumpel, gibt es nur bei
+  „Ihre Telemetrie: Öffentlich“.
 
 ## Wenn etwas nicht klappt
 

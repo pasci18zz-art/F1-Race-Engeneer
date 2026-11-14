@@ -461,7 +461,8 @@ document.querySelector(".reiter").addEventListener("click", (e) => {
   if (!knopf) return;
   for (const b of document.querySelectorAll(".reiter button")) b.classList.toggle("aktiv", b === knopf);
   for (const a of document.querySelectorAll(".ansicht")) a.classList.toggle("aktiv", a.id === knopf.dataset.reiter);
-  if (knopf.dataset.reiter === "live") liveHolen(); else sessionsLaden();
+  if (knopf.dataset.reiter === "live") liveHolen();
+  else if (knopf.dataset.reiter !== "befehle") sessionsLaden();
 });
 
 legende($("legende"));

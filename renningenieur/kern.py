@@ -10,9 +10,11 @@ Tests direkt mit simulierten Paketen fuettern.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Callable
 
 from .auswertung import Auswertung, Ereignis
+from .befehle import DATEI, EigeneBefehle
 from .config import Texte
 from .fragen import Fragen
 from .regeln import Regeln
@@ -21,14 +23,16 @@ from .zustand import Rennzustand
 
 
 class Kern:
-    def __init__(self, cfg: dict, texte: Texte, stimme, datenbank=None):
+    def __init__(self, cfg: dict, texte: Texte, stimme, datenbank=None, ordner=None):
         self.cfg = cfg
         self.texte = texte
         self.zustand = Rennzustand()
         self.auswertung = Auswertung(self.zustand)
         self.funk = Funk(stimme, cfg.get("sprachausgabe", {}).get("max_wartezeit", 20))
         self.regeln = Regeln(self.zustand, cfg.get("warnungen", {}), texte, self.funk)
-        self.fragen = Fragen(self.zustand, cfg.get("fahrer", {}), texte, cfg.get("strategie", {}))
+        self.eigene = EigeneBefehle(Path(ordner) / DATEI if ordner else None)
+        self.fragen = Fragen(self.zustand, cfg.get("fahrer", {}), texte, cfg.get("strategie", {}),
+                             self.eigene)
         self.datenbank = datenbank
         self.hoerer: list[Callable[[Ereignis], None]] = [self.regeln.ereignis]
         if datenbank is not None:

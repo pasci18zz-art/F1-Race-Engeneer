@@ -16,6 +16,11 @@ Seiten und Schnittstellen:
     POST /api/sprache/start   Ingenieur schweigt kurz, waehrend das Tablet zuhoert
     POST /api/sprache/ende    Ingenieur darf wieder reden (Aufnahme abgebrochen)
     POST /api/sprache?rate=48000   Aufnahme (16 Bit, Mono) -> erkannter Text + Antwort
+    GET  /api/befehle              eingebaute und eigene Befehle, Infos, Ziele
+    POST /api/befehle/speichern    {"befehl": {...}}  eigenen Befehl anlegen oder aendern
+    POST /api/befehle/loeschen     {"id": "..."}
+    POST /api/befehle/pruefen      {"text": "...", "sprechen": false}  Frage ausprobieren
+    POST /api/befehle/vorschau     {"befehl": {...}, "frage": "..."}  ungespeicherten Befehl ausprobieren
     POST /api/saison     {"saison_id": 1, "name": "..."}  Saison umbenennen
     POST /api/loeschen   {"id": 3}  gespeicherte Session loeschen
 """
@@ -31,6 +36,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from .. import befehle as bf
 from ..schnappschuss import schnappschuss
 
 log = logging.getLogger(__name__)
@@ -102,6 +108,58 @@ class Webserver:
             "ca": self.ca_datei is not None,
         }
 
+    # --- Befehle ------------------------------------------------------
+    def _fragen_und_daten(self):
+        """Fragen-Objekt auf dem Live-Zustand oder, ohne Spiel, auf Beispieldaten."""
+        kern = self.kern
+        if kern.zustand.spieler is not None:
+            return kern.fragen, "live"
+        return kern.fragen.fuer_zustand(bf.demo_zustand()), "beispiel"
+
+    def befehle_uebersicht(self) -> dict:
+        from ..fragen import THEMEN
+
+        fragen, daten = self._fragen_und_daten()
+        z = fragen.z
+        with z.lock:
+            fahrer = [{"name": a.anzeigename, "position": a.position} for a in z.gueltige_autos()]
+        return {
+            "eingebaut": bf.katalog_eingebaut(THEMEN),
+            "eigene": self.kern.eigene.liste(),
+            "infos": bf.infos_katalog(),
+            "ziele": bf.ZIELE,
+            "fahrer_nennen": bf.FAHRER_NENNEN,
+            "fahrer": fahrer,
+            "daten": daten,
+        }
+
+    def befehl_pruefen(self, text: str, sprechen: bool) -> dict:
+        fragen, daten = self._fragen_und_daten()
+        antwort, (art, name) = fragen.antwort_mit_quelle(text)
+        if sprechen and daten == "live":
+            self.kern.funk.sagen(antwort, 2, haltbar=30)
+        from ..fragen import THEMEN
+
+        titel = {d["thema"]: d["titel"] for d in bf.katalog_eingebaut(THEMEN)}
+        von = {"eigen": f"Eigener Befehl „{name}“", "eingebaut": f"Eingebaut: {titel.get(name, name)}",
+               "keine": "Kein Befehl erkannt"}[art]
+        return {"antwort": antwort, "von": von, "art": art, "daten": daten}
+
+    def befehl_vorschau(self, befehl: dict, frage: str) -> dict:
+        sauber, fehler = bf.validiere({**befehl, "name": befehl.get("name") or "Vorschau"})
+        if sauber is None:
+            return {"ok": False, "fehler": fehler}
+        fragen, daten = self._fragen_und_daten()
+        z = fragen.z
+        with z.lock:
+            ich = z.spieler
+            if ich is None:
+                return {"ok": False, "fehler": ["Keine Daten für die Vorschau."]}
+            text = bf.norm(frage or sauber["ausloeser"][0])
+            bezug, auto = fragen._bezug(text, text.split(), ich)
+            antwort = bf.auswerten(sauber, fragen, ich, bezug, auto)
+        return {"ok": True, "antwort": antwort, "daten": daten, "frage": frage or sauber["ausloeser"][0]}
+
     def _handler(self):
         web = self
         kern = self.kern
@@ -155,6 +213,8 @@ class Webserver:
                         self._json(daten)
                     elif url.path == "/api/info":
                         self._json(web.info())
+                    elif url.path == "/api/befehle":
+                        self._json(web.befehle_uebersicht())
                     elif url.path == "/ca.crt" and web.ca_datei:
                         self._bytes(web.ca_datei.read_bytes(), TYPEN[".crt"], "renningenieur-ca.crt")
                     elif url.path == "/api/sessions":
@@ -194,7 +254,7 @@ class Webserver:
                     if pfad == "/api/sprache":
                         self._aufnahme(parse_qs(url.query))
                         return
-                    laenge = min(int(self.headers.get("Content-Length", 0)), 10_000)
+                    laenge = min(int(self.headers.get("Content-Length", 0)), 40_000)
                     daten = json.loads(self.rfile.read(laenge) or b"{}")
                     db = kern.datenbank
                     if pfad == "/api/sprache/start":
@@ -206,6 +266,19 @@ class Webserver:
                     elif pfad == "/api/frage":
                         text = str(daten.get("text", ""))[:200]
                         self._json({"frage": text, "antwort": kern.frage(text)})
+                    elif pfad == "/api/befehle/speichern":
+                        sauber, fehler = kern.eigene.speichern(daten.get("befehl") or {})
+                        self._json({"ok": sauber is not None, "befehl": sauber, "fehler": fehler,
+                                    "eigene": kern.eigene.liste()})
+                    elif pfad == "/api/befehle/loeschen":
+                        self._json({"ok": kern.eigene.loeschen(str(daten.get("id", ""))),
+                                    "eigene": kern.eigene.liste()})
+                    elif pfad == "/api/befehle/pruefen":
+                        self._json(web.befehl_pruefen(str(daten.get("text", ""))[:200],
+                                                      bool(daten.get("sprechen"))))
+                    elif pfad == "/api/befehle/vorschau":
+                        self._json(web.befehl_vorschau(daten.get("befehl") or {},
+                                                       str(daten.get("frage", ""))[:200]))
                     elif pfad == "/api/saison" and db:
                         db.saison_umbenennen(int(daten["saison_id"]), str(daten.get("name", "")))
                         self._json({"ok": True})
@@ -235,6 +308,7 @@ class Webserver:
         self._server.daemon_threads = True
         self.port = self._server.server_address[1]
         threading.Thread(target=self._server.serve_forever, name="web", daemon=True).start()
+        threading.Thread(target=bf.demo_zustand, name="beispieldaten", daemon=True).start()
         ip = lokale_ip()
         log.info("Tablet-Seite: http://%s:%s", ip, self.port)
         if self.https_port and self.tablet.get("mikrofon", True):
