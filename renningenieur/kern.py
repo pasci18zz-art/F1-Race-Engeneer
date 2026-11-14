@@ -28,7 +28,7 @@ class Kern:
         self.auswertung = Auswertung(self.zustand)
         self.funk = Funk(stimme, cfg.get("sprachausgabe", {}).get("max_wartezeit", 20))
         self.regeln = Regeln(self.zustand, cfg.get("warnungen", {}), texte, self.funk)
-        self.fragen = Fragen(self.zustand, cfg.get("fahrer", {}), texte)
+        self.fragen = Fragen(self.zustand, cfg.get("fahrer", {}), texte, cfg.get("strategie", {}))
         self.datenbank = datenbank
         self.hoerer: list[Callable[[Ereignis], None]] = [self.regeln.ereignis]
         if datenbank is not None:

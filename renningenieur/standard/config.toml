@@ -103,6 +103,13 @@ letzte_runde = true
 # Begrüßung mit Startplatz, Reifen und Wetter zu Beginn eines Rennens
 rennstart_info = true
 
+[strategie]
+# Zeitverlust eines Boxenstopps in Sekunden, solange im Rennen noch keiner
+# gemessen wurde. Danach rechnet das Programm mit den gemessenen Stopps.
+boxenstopp_verlust = 22
+# Bis zu diesem Verschleiß (Prozent) rechnet "Wie lange halten meine Reifen?"
+reifen_grenze = 70
+
 [fahrer]
 # Name deines Mitspielers, wie er im Spiel angezeigt wird. Leer = automatisch
 # (der andere menschliche Fahrer im Feld). Fragen wie "Wie viel habe ich auf

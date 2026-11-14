@@ -17,6 +17,7 @@ AUSGEWERTETE_PAKETE = frozenset(
         spec.LAP_DATA,
         spec.EVENT,
         spec.PARTICIPANTS,
+        spec.CAR_TELEMETRY,
         spec.CAR_STATUS,
         spec.FINAL_CLASSIFICATION,
         spec.CAR_DAMAGE,
@@ -130,6 +131,10 @@ def _parse_participants(data: bytes, fmt: int) -> dict:
     return {"num_active_cars": num_active, "cars": cars}
 
 
+def _parse_car_telemetry(data: bytes, fmt: int) -> dict:
+    return {"cars": _cars(data, spec.HEADER_SIZE, spec.CAR_TELEMETRY_CAR[fmt], fmt)}
+
+
 def _parse_car_status(data: bytes, fmt: int) -> dict:
     return {"cars": _cars(data, spec.HEADER_SIZE, spec.CAR_STATUS_CAR[fmt], fmt)}
 
@@ -190,6 +195,7 @@ _PARSER = {
     spec.LAP_DATA: _parse_lap_data,
     spec.EVENT: _parse_event,
     spec.PARTICIPANTS: _parse_participants,
+    spec.CAR_TELEMETRY: _parse_car_telemetry,
     spec.CAR_STATUS: _parse_car_status,
     spec.FINAL_CLASSIFICATION: _parse_final_classification,
     spec.CAR_DAMAGE: _parse_car_damage,

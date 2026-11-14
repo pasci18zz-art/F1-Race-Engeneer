@@ -166,14 +166,20 @@ Erkannt wird am Stichwort, die genaue Formulierung ist egal.
 
 | Thema | Beispiele |
 |---|---|
-| Wetter | „Kommt Regen?“ · „Wie ist das Wetter?“ · „Wann wird es trocken?“ |
-| Abstände | „Wie viele Sekunden zum Auto vor mir?“ · „Abstand nach hinten“ · „Rückstand auf den Führenden“ · „Wie weit ist Platz drei weg?“ · „Abstand zu Verstappen“ |
-| Entwicklung | „Wie viel habe ich in den letzten fünf Runden auf den Vordermann verloren?“ · „… auf meinen Kumpel gewonnen?“ |
-| Reifen | „Wie sind meine Reifen?“ · „Welche Reifen hat der Hintermann?“ · „Wie ist der Reifenverschleiß von Verstappen?“ · „Welche Mischung fährt wer?“ |
-| Box | „Wann ist das Boxenfenster?“ (nennt vorerst das Fenster, das das Spiel berechnet) |
-| Strategie anderer | „Wie ist die Strategie von Verstappen?“ · „War der Hintermann schon an der Box?“ · „Wer war noch nicht an der Box?“ |
-| Positionen | „Wer ist auf Position siebzehn?“ · „Auf welchem Platz ist Leclerc?“ · „Wer führt?“ · „Wie ist die Reihenfolge?“ |
-| Sonstiges | „Auf welchem Platz bin ich?“ · „Wie viele Runden noch?“ · „Wie viel Sprit habe ich?“ · „Habe ich einen Schaden?“ · „Habe ich Strafen?“ · „Wie war meine Rundenzeit?“ |
+| Wetter | „Kommt Regen?“ · „Wann wird es trocken?“ · „Wie warm ist die Strecke?“ |
+| Abstände | „Wie viele Sekunden zum Auto vor mir?“ · „Rückstand auf den Führenden“ · „Wie weit ist Platz drei weg?“ |
+| Entwicklung | „Wie viel habe ich in den letzten fünf Runden auf den Vordermann verloren?“ · „Holt der Hintermann auf?“ · „Wann habe ich den Vordermann eingeholt?“ |
+| Tempo | „Wer ist gerade am schnellsten?“ · „Wie schnell war der Vordermann?“ · „In welchem Sektor verliere ich?“ · „Wie konstant fahre ich?“ |
+| Reifen | „Wie sind meine Reifen?“ · „Wie lange halten meine Reifen noch?“ · „Welche Reifensätze habe ich noch?“ · „Wer hat um mich herum die frischesten Reifen?“ · „Wie ist der Reifenverschleiß von Verstappen?“ |
+| Boxenstopp | „Wann ist das Boxenfenster?“ · „Wo komme ich nach einem Stopp raus?“ · „Lohnt sich ein Undercut?“ · „Wie viel kostet ein Stopp?“ |
+| Strategie anderer | „Wie ist die Strategie von Verstappen?“ · „Wer war noch nicht an der Box?“ |
+| Positionen | „Wer ist auf Position siebzehn?“ · „Wer führt?“ · „Wie viele Plätze habe ich gutgemacht?“ |
+| Auto | „Wie warm sind meine Reifen/Bremsen?“ · „Wie viel ERS habe ich?“ · „Wie viel Sprit habe ich?“ · „Habe ich einen Schaden?“ |
+| Strafen | „Habe ich Strafen?“ · „Wer hat Strafen?“ · „Wie viele Verwarnungen habe ich?“ · „Wer ist ausgefallen?“ |
+
+Rückkehrplatz, Undercut, Aufholen und Reifenhaltbarkeit sind Schätzungen aus
+den Rundenzeiten des laufenden Rennens (`analyse.py`); Runden mit Safety Car,
+Boxenstopp oder Ausreißern zählen nicht. Einstellbar unter `[strategie]`.
 
 Einen Fahrer meinst du mit „vor mir“, „hinter mir“, „der Führende“, „Platz
 vier“, „der Dritte“, „mein Teamkollege“, „mein Kumpel“, dem Namen oder dem Team.
@@ -244,6 +250,7 @@ Jedes Modul hat eine Aufgabe und lässt sich einzeln austauschen.
 | `auswertung.py` | Pakete → Zustand und Ereignisse (Boxeneinfahrt, rote Flagge, …) |
 | `regeln.py` | automatische Warnungen, eine Methode pro Regel |
 | `fragen.py` | Fragen verstehen und beantworten |
+| `analyse.py` | Tempo, Boxenverlust, Reifenabbau, Rückkehrplatz |
 | `formulierung.py` | Zahlen und Zustände in sprechbare Bausteine |
 | `sprache/funk.py` | Warteschlange mit Priorität und Verfallszeit |
 | `sprache/stimmen.py` | Sprachausgaben (Windows, Konsole, stumm) |
@@ -265,7 +272,7 @@ der Python-Standardbibliothek aus.
 python -m unittest discover -s tests -t .
 ```
 
-100 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
+113 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
 UDP-Sockets, jede Regel mit ihren Schwellen, die Fragen, komplette simulierte
 Rennen von Paket bis Datenbank, Rückblenden, Webserver.
 

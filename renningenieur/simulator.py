@@ -190,6 +190,9 @@ class Simulator:
                 yield self.t, self._car_status()
                 yield self.t, self._car_damage()
                 yield self.t, self._session()
+                yield self.t, self._car_telemetry()
+            if schritt_nr % 40 == 20:
+                yield self.t, self._tyre_sets()
             if schritt_nr % 40 == 0:
                 yield self.t, self._participants()
             yield self.t, self._session_history(self.autos[schritt_nr % len(self.autos)])
@@ -434,6 +437,9 @@ class Simulator:
                 "pit_lane_timer_active": 1 if a.pit_status else 0,
                 "pit_lane_time_in_lane_ms": min(int((self.t - a.pit_start) * 1000), 65535) if a.pit_status else 0,
                 "pit_stop_timer_ms": 2400 if a.pit_status and self.t > a.pit_wechsel else 0,
+                # Zwei Verwarnungen fuer Track Limits beim Spieler
+                "corner_cutting_warnings": (int(self.t > 250) + int(self.t > 330)) if a.idx == SPIELER else 0,
+                "total_warnings": (int(self.t > 250) + int(self.t > 330)) if a.idx == SPIELER else 0,
             })
         return encoder.lap_data(self.fmt, self._hdr(), cars)
 
@@ -466,9 +472,41 @@ class Simulator:
             "actual_tyre_compound": TATSAECHLICH[a.mischung],
             "visual_tyre_compound": a.mischung,
             "tyres_age_laps": a.alter,
-            "ers_store_energy": 2_000_000.0,
+            "ers_store_energy": 1_000_000.0 + (a.distanz % STRECKENLAENGE) / STRECKENLAENGE * 2_000_000,
+            "ers_deploy_mode": 1,
         } for a in self.autos]
         return encoder.car_status(self.fmt, self._hdr(), cars)
+
+    def _car_telemetry(self) -> bytes:
+        cars = []
+        for a in self.autos:
+            warm = 95 + a.verschleiss * 0.1 - (12 if self._nass() else 0)
+            cars.append({
+                "speed": 0 if a.pit_status == 2 else 80 if a.pit_status else 240,
+                "gear": 7,
+                "engine_rpm": 11000,
+                "brakes_temperature": [480, 470, 610, 620],
+                "tyres_surface_temperature": [int(warm) + 8, int(warm) + 7, int(warm) + 5, int(warm) + 6],
+                "tyres_inner_temperature": [int(warm) + 3, int(warm) + 2, int(warm), int(warm) + 1],
+                "engine_temperature": 105,
+                "tyres_pressure": [21.5, 21.5, 23.0, 23.0],
+            })
+        return encoder.car_telemetry(self.fmt, self._hdr(), cars)
+
+    def _tyre_sets(self) -> bytes:
+        """Reifensaetze des Spielers: 2 Soft, 3 Medium, 2 Hard, Inter und Wet."""
+        ich = self.autos[SPIELER]
+        saetze = []
+        for mischung, anzahl in ((SOFT, 2), (MEDIUM, 3), (HARD, 2), (INTER, 4), (WET, 3)):
+            for n in range(anzahl):
+                saetze.append({"actual_tyre_compound": TATSAECHLICH[mischung],
+                               "visual_tyre_compound": mischung, "wear": 0, "available": 1,
+                               "recommended_session": 0, "life_span": 20, "usable_life": 16})
+        saetze[0]["wear"] = 18  # ein Soft aus dem Qualifying
+        fitted = next(i for i, s in enumerate(saetze) if s["visual_tyre_compound"] == ich.mischung)
+        saetze[fitted]["fitted"] = 1
+        saetze[fitted]["wear"] = int(ich.verschleiss)
+        return encoder.tyre_sets(self.fmt, self._hdr(), SPIELER, saetze, fitted)
 
     def _car_damage(self) -> bytes:
         cars = []

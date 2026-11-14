@@ -607,12 +607,41 @@ EVENT_DETAILS = {
 
 
 # --------------------------------------------------------------------------
+# Car Telemetry (Paket 6). Reifen-Arrays: hinten links, hinten rechts,
+# vorne links, vorne rechts. 2026: Motortemperatur nur noch uint8.
+# --------------------------------------------------------------------------
+_CAR_TELEMETRY_HEAD = [
+    ("speed", "H"),
+    ("throttle", "f"),
+    ("steer", "f"),
+    ("brake", "f"),
+    ("clutch", "B"),
+    ("gear", "b"),
+    ("engine_rpm", "H"),
+    ("drs", "B"),
+    ("rev_lights_percent", "B"),
+    ("rev_lights_bit_value", "H"),
+    ("brakes_temperature", "4H"),
+    ("tyres_surface_temperature", "4B"),
+    ("tyres_inner_temperature", "4B"),
+]
+_CAR_TELEMETRY_TAIL = [("tyres_pressure", "4f"), ("surface_type", "4B")]
+CAR_TELEMETRY_CAR = {
+    2025: Layout(_CAR_TELEMETRY_HEAD + [("engine_temperature", "H")] + _CAR_TELEMETRY_TAIL),
+    2026: Layout(_CAR_TELEMETRY_HEAD + [("engine_temperature", "B")] + _CAR_TELEMETRY_TAIL),
+}
+CAR_TELEMETRY_TAIL = Layout(
+    [("mfd_panel_index", "B"), ("mfd_panel_index_secondary_player", "B"), ("suggested_gear", "b")]
+)
+
+
+# --------------------------------------------------------------------------
 # Strukturen, die nur fuer den Groessen-Test und den Simulator gebraucht
 # werden (Inhalt wird im Betrieb nicht ausgewertet, nur weitergeleitet).
 # --------------------------------------------------------------------------
 CAR_MOTION_SIZE = {2025: 60, 2026: 54}
 CAR_SETUP_SIZE = 50
-CAR_TELEMETRY_SIZE = {2025: 60, 2026: 59}
+CAR_TELEMETRY_SIZE = {fmt: CAR_TELEMETRY_CAR[fmt].size for fmt in (2025, 2026)}
 LOBBY_INFO_SIZE = {2025: 42, 2026: 43}
 TIME_TRIAL_SET_SIZE = {2025: 24, 2026: 25}
 CAR_TELEMETRY_2_SIZE = 10

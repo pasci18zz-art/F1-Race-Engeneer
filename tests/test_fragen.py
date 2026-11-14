@@ -227,3 +227,174 @@ class TestFragenZuAnderenFahrern(unittest.TestCase):
         self.assertRegex(a, r"Verstappen fährt \w+, .*Verschleiß bis zu \d+ Prozent\.")
         vorne = self.z.vordermann(self.ich)
         self.assertIn(vorne.anzeigename, self.frage("Wie ist der Verschleiß beim Vordermann"))
+
+
+class TestNeueFragen(unittest.TestCase):
+    """Die 20 Fragen aus der zweiten Runde, im Rennen 'trocken' nach 480 Sekunden."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.kern, _ = rennen_fahren("trocken", bis=480)
+        cls.z = cls.kern.zustand
+        cls.ich = cls.z.spieler
+
+    def frage(self, text: str) -> str:
+        return self.kern.fragen.antwort(text)
+
+    def test_themen(self):
+        f = self.kern.fragen
+        erwartet = {
+            "Holt der Hintermann auf": "trend",
+            "Wann habe ich den Vordermann eingeholt": "trend",
+            "Wer ist gerade am schnellsten": "schnellste",
+            "Wie schnell war der Vordermann": "rundenzeit",
+            "In welchem Sektor verliere ich auf den Vordermann": "sektor",
+            "Wer ist ausgefallen": "ausfall",
+            "Wer hat Strafen": "strafen",
+            "Hat der Vordermann Schaden": "schaden",
+            "Wer hat die frischesten Reifen": "frisch",
+            "Wie viele Plätze habe ich gutgemacht": "plaetze",
+            "Wo komme ich nach einem Stopp raus": "rueckkehr",
+            "Lohnt sich ein Undercut": "undercut",
+            "Wie lange halten meine Reifen noch": "haltbarkeit",
+            "Reichen die Reifen bis ins Ziel": "haltbarkeit",
+            "Welche Reifensätze habe ich noch": "reifensaetze",
+            "Wie viel Zeit kostet ein Boxenstopp": "stoppzeit",
+            "Wie warm sind meine Reifen": "temperatur",
+            "Wie heiß sind die Bremsen": "temperatur",
+            "Wie viel ERS habe ich": "ers",
+            "Wie voll ist die Batterie": "ers",
+            "Wie viele Verwarnungen habe ich": "verwarnungen",
+            "Wie konstant fahre ich": "konstanz",
+            # alte Fragen duerfen nicht umgeleitet werden
+            "Wer ist auf Platz drei": "position",
+            "Wer führt": "position",
+            "Abstand zum Ersten": "abstand",
+            "Reicht der Sprit": "sprit",
+            "Wie viel habe ich auf den Vordermann verloren": "entwicklung",
+        }
+        for frage, thema in erwartet.items():
+            self.assertEqual(f.thema(frage), thema, frage)
+
+    def test_trend(self):
+        a = self.frage("Holt der Hintermann auf")
+        hinten = self.z.hintermann(self.ich)
+        self.assertIn(hinten.anzeigename, a)
+        a = self.frage("Wann habe ich den Vordermann eingeholt")
+        self.assertIn(self.z.vordermann(self.ich).anzeigename, a)
+
+    def test_trend_mit_hochrechnung(self):
+        from renningenieur.zustand import Auto
+
+        kern, _ = rennen_fahren("trocken", bis=100)
+        z = kern.zustand
+        ich, vorne = z.autos[0], z.autos[1]
+        z.spieler_idx, z.runden_gesamt, z.session_typ = 0, 30, 15
+        for a, pos, zeit in ((ich, 2, 80000), (vorne, 1, 80500)):
+            a.position, a.runde, a.result_status, a.boxenstopps, a.stints = pos, 6, 2, [], []
+            a.rundenzeiten = {r: zeit for r in range(1, 6)}
+            a.neutral_runden = set()
+        ich.delta_fuehrender_ms, vorne.delta_fuehrender_ms = 2000, 0
+        self.assertEqual(kern.fragen.antwort("Wann habe ich den Vordermann eingeholt"),
+                         f"Du holst etwa 0,5 Sekunden pro Runde auf {vorne.anzeigename} auf. "
+                         "Bei 2,0 Sekunden Abstand bist du in etwa 4 Runden dran.")
+        z.runden_gesamt = 8
+        self.assertTrue(kern.fragen.antwort("Wann bin ich dran am Vordermann").endswith(
+            "Bis ins Ziel sind es aber nur noch 2 Runden."))
+        self.assertIsInstance(ich, Auto)
+
+    def test_schnellste_und_rundenzeit(self):
+        a = self.frage("Wer ist gerade am schnellsten")
+        self.assertIn("schnellste letzte Runde", a)
+        self.assertIn("schnellste Runde des Rennens", a)
+        vorne = self.z.vordermann(self.ich)
+        a = self.frage("Wie schnell war der Vordermann in der letzten Runde")
+        self.assertTrue(a.startswith(f"{vorne.anzeigename} fuhr zuletzt"))
+        self.assertTrue(self.frage("Wie war meine schnellste Runde").startswith("Letzte Runde"))
+
+    def test_sektor(self):
+        a = self.frage("In welchem Sektor verliere ich auf den Vordermann")
+        self.assertIn("Sektor 1", a)
+        self.assertIn("Sektor 3", a)
+        self.assertTrue(self.frage("Wie war mein erster Sektor").startswith(
+            "Deine letzte Runde gegen deine besten Sektoren"))
+
+    def test_ausfall_strafen_schaden(self):
+        self.assertEqual(self.frage("Wer ist ausgefallen"), "Bisher ist niemand ausgefallen.")
+        self.assertEqual(self.frage("Wer hat Strafen"), "Niemand hat eine Strafe.")
+        vorne = self.z.vordermann(self.ich)
+        self.assertEqual(self.frage("Hat der Vordermann Schaden"),
+                         f"{vorne.anzeigename} hat keinen Schaden.")
+        # von Hand: ein Ausfall, eine Strafe, ein Schaden
+        kern, _ = rennen_fahren("trocken", bis=200)
+        z = kern.zustand
+        z.autos[15].result_status = 4
+        z.autos[3].strafen_s = 5
+        z.autos[2].offene_durchfahrt = 1
+        z.autos[0].fluegel_vl = 30
+        self.assertEqual(kern.fragen.antwort("Wer ist ausgefallen"), "Ausgefallen: Lawson.")
+        a = kern.fragen.antwort("Wer hat Strafen")  # nach Position sortiert
+        self.assertTrue(a.startswith("Strafen: "))
+        self.assertIn("Piastri 5 Sekunden Strafe", a)
+        self.assertIn("Leclerc eine offene Durchfahrtsstrafe", a)
+        self.assertEqual(kern.fragen.antwort("Hat Verstappen einen Schaden"),
+                         "Verstappen hat Schaden: Frontflügel links 30 Prozent.")
+        self.assertEqual(kern.fragen.antwort("Hat Piastri eine Strafe"),
+                         "Piastri hat 5 Sekunden Strafe.")
+
+    def test_frisch_und_plaetze(self):
+        a = self.frage("Wer hat um mich herum die frischesten Reifen")
+        self.assertTrue(a.startswith(("Die frischesten Reifen", "Du hast die frischesten")))
+        self.assertEqual(self.frage("Wie viele Plätze habe ich seit dem Start gutgemacht"),
+                         f"Von Platz 5 auf Platz {self.ich.position}, du hast "
+                         f"{5 - self.ich.position} Plätze gutgemacht.")
+
+    def test_boxenstopp_rechnungen(self):
+        a = self.frage("Wie viel Zeit kostet hier ein Boxenstopp")
+        # Simulator: 22 s in der Gasse, davon 8 s normale Fahrzeit -> etwa 14 s Verlust
+        verlust = float(a.split("etwa ")[1].split(" Sekunden")[0].replace(",", "."))
+        self.assertAlmostEqual(verlust, 14.0, delta=1.5)
+        self.assertIn("Standzeit", a)
+        a = self.frage("Wo komme ich nach einem Stopp raus")
+        self.assertRegex(a, r"etwa auf Platz \d+ raus")
+        self.assertIn("gemessen an", a)
+        a = self.frage("Lohnt sich ein Undercut auf den Vordermann")
+        self.assertIn(self.z.vordermann(self.ich).anzeigename, a)
+        self.assertRegex(a, r"(klappen|knapp|Eher nicht)")
+
+    def test_boxenverlust_ohne_messung(self):
+        kern, _ = rennen_fahren("trocken", bis=150)
+        self.assertEqual(kern.fragen.antwort("Wie viel kostet ein Boxenstopp"),
+                         "Gerechnet mit 22,0 Sekunden pro Stopp, gemessen ist noch keiner.")
+
+    def test_haltbarkeit(self):
+        a = self.frage("Wie lange halten meine Reifen noch")
+        self.assertRegex(a, r"Verschleiß \d+ Prozent, etwa \d+,\d Prozent pro Runde\. "
+                            r"Bis 70 Prozent noch etwa \d+ Runden\.")
+        vorne = self.z.vordermann(self.ich)
+        self.assertTrue(self.frage("Wie lange halten die Reifen vom Vordermann").startswith(
+            vorne.anzeigename))
+
+    def test_reifensaetze(self):
+        self.assertEqual(self.frage("Welche Reifensätze habe ich noch"),
+                         "Noch verfügbar: Soft: 1 neu, 1 gebraucht mit 18 Prozent. "
+                         "Medium: 2 neu. Hard: 2 neu.")
+
+    def test_temperaturen_ers_verwarnungen(self):
+        self.assertRegex(self.frage("Wie warm sind meine Reifen"),
+                         r"Reifen innen: vorne \d+ und \d+, hinten \d+ und \d+ Grad\.")
+        self.assertEqual(self.frage("Wie warm sind meine Bremsen"),
+                         "Bremsen vorne 610 und 620, hinten 480 und 470 Grad.")
+        self.assertEqual(self.frage("Wie heiß ist der Motor"), "Motor 105 Grad.")
+        self.assertEqual(self.frage("Wie warm ist die Strecke"), "Strecke 31 Grad, Luft 24 Grad.")
+        self.assertRegex(self.frage("Wie viel ERS habe ich"), r"ERS bei \d+ Prozent, Modus Mittel\.")
+        self.assertEqual(self.frage("Wie viele Verwarnungen für Track Limits habe ich"),
+                         "Du hast 2 Verwarnungen für Track Limits, insgesamt 2.")
+        self.assertEqual(self.frage("Wie viele Verwarnungen hat der Vordermann"),
+                         f"{self.z.vordermann(self.ich).anzeigename} hat keine Verwarnungen.")
+
+    def test_konstanz(self):
+        a = self.frage("Wie konstant fahre ich")
+        self.assertRegex(a, r"Schnitt der letzten \d Runden 1 Minute \d+,\d, Streuung \d+,\d Sekunden\.")
+        self.assertTrue(a.endswith(("Sehr konstant.", "Ordentlich konstant.",
+                                    "Die Zeiten schwanken noch deutlich.")))

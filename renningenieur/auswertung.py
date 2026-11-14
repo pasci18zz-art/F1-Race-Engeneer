@@ -175,8 +175,14 @@ class Auswertung:
             a.rundendistanz = c["lap_distance"]
             a.gesamtdistanz = c["total_distance"]
             a.strafen_s = c["penalties"]
+            a.offene_durchfahrt = c["num_unserved_drive_through_pens"]
+            a.offene_stop_go = c["num_unserved_stop_go_pens"]
+            a.verwarnungen = c["total_warnings"]
+            a.track_limits = c["corner_cutting_warnings"]
             if not a.gueltig:
                 continue
+            if z.safety_car in (k.SC_VOLL, k.SC_VIRTUELL) or z.rote_flagge:
+                a.neutral_runden.add(a.runde)
             if i not in self._gesehen:
                 self._gesehen.add(i)
                 continue  # erster Datensatz: nur merken, nichts melden
@@ -258,6 +264,8 @@ class Auswertung:
             a.sprit_runden = c["fuel_remaining_laps"]
             a.sprit_kg = c["fuel_in_tank"]
             a.flagge = c["vehicle_fia_flags"]
+            a.ers_energie = c["ers_store_energy"]
+            a.ers_modus = c["ers_deploy_mode"]
             if vis == 0 or not a.gueltig:
                 continue
             erster = not a.status_bekannt
@@ -291,6 +299,16 @@ class Auswertung:
             s = a.stints[-1]
             if s.end_runde is None and s.visuell == a.reifen_visuell:
                 s.alter_start = max(a.reifenalter - max(a.runde - s.start_runde, 0), 0)
+
+    # --- Car Telemetry ------------------------------------------------
+    def _car_telemetry(self, p: dict) -> None:
+        for i, c in enumerate(p["cars"]):
+            a = self.z.autos[i]
+            a.reifen_temp_innen = c["tyres_inner_temperature"]
+            a.reifen_temp_oberflaeche = c["tyres_surface_temperature"]
+            a.bremsen_temp = c["brakes_temperature"]
+            a.motor_temp = c["engine_temperature"]
+            a.telemetrie_bekannt = True
 
     # --- Car Damage ---------------------------------------------------
     def _car_damage(self, p: dict) -> None:
@@ -467,6 +485,7 @@ _HANDLER = {
     spec.LAP_DATA: Auswertung._lap_data,
     spec.EVENT: Auswertung._event,
     spec.PARTICIPANTS: Auswertung._participants,
+    spec.CAR_TELEMETRY: Auswertung._car_telemetry,
     spec.CAR_STATUS: Auswertung._car_status,
     spec.FINAL_CLASSIFICATION: Auswertung._final_classification,
     spec.CAR_DAMAGE: Auswertung._car_damage,

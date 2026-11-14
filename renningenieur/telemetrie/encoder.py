@@ -92,6 +92,21 @@ def car_status(fmt: int, hdr: dict, cars: list[dict]) -> bytes:
     return _pad(out, fmt, spec.CAR_STATUS)
 
 
+def car_telemetry(fmt: int, hdr: dict, cars: list[dict]) -> bytes:
+    out = header(fmt, spec.CAR_TELEMETRY, **hdr) + _cars(spec.CAR_TELEMETRY_CAR[fmt], cars, fmt)
+    out += spec.CAR_TELEMETRY_TAIL.pack({"mfd_panel_index": 255,
+                                         "mfd_panel_index_secondary_player": 255})
+    return _pad(out, fmt, spec.CAR_TELEMETRY)
+
+
+def tyre_sets(fmt: int, hdr: dict, car_idx: int, sets: list[dict], fitted_idx: int) -> bytes:
+    out = header(fmt, spec.TYRE_SETS, **hdr) + bytes([car_idx])
+    for i in range(spec.NUM_TYRE_SETS):
+        out += spec.TYRE_SET.pack(sets[i] if i < len(sets) else None)
+    out += bytes([fitted_idx])
+    return _pad(out, fmt, spec.TYRE_SETS)
+
+
 def car_damage(fmt: int, hdr: dict, cars: list[dict]) -> bytes:
     out = header(fmt, spec.CAR_DAMAGE, **hdr) + _cars(spec.CAR_DAMAGE_CAR, cars, fmt)
     return _pad(out, fmt, spec.CAR_DAMAGE)

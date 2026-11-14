@@ -201,10 +201,128 @@ boxenfenster = ["Boxenfenster laut Strategie: ideal Runde {ideal}, spätestens R
 boxen_rueckkehr = ["Nach einem Stopp kämst du jetzt etwa auf Platz {platz} zurück."]
 kein_boxenfenster = ["Aktuell ist kein Boxenstopp geplant."]
 kein_schaden = ["Kein Schaden am Auto."]
+# {name} {liste}
+schaden_fahrer = ["{name} hat Schaden: {liste}."]
+kein_schaden_fahrer = ["{name} hat keinen Schaden."]
 # {liste} z. B. "Frontflügel links 20 Prozent, Unterboden 5 Prozent"
 schaden = ["Schaden: {liste}."]
 keine_strafen = ["Du hast keine Strafen."]
-# {sekunden}
-strafen = ["Du hast {sekunden} Sekunden Strafe."]
+# {strafe} z. B. "5 Sekunden Strafe" oder "eine offene Durchfahrtsstrafe"
+strafen = ["Du hast {strafe}."]
+# Bausteine für {strafe}: {sekunden}
+strafe_sekunden = ["{sekunden} Sekunden Strafe"]
+strafe_durchfahrt_offen = ["eine offene Durchfahrtsstrafe"]
+strafe_stop_go_offen = ["eine offene Stop-and-Go-Strafe"]
+# {name} {strafe}
+strafen_fahrer = ["{name} hat {strafe}."]
+keine_strafen_fahrer = ["{name} hat keine Strafe."]
+# {liste} z. B. "Piastri 5 Sekunden Strafe, Ocon eine offene Durchfahrtsstrafe"
+strafen_liste = ["Strafen: {liste}."]
+niemand_strafen = ["Niemand hat eine Strafe."]
 # {letzte} {beste}
 rundenzeit = ["Letzte Runde {letzte}, deine beste {beste}."]
+# Rundenzeit eines anderen: {name} {zeit} {eigene}
+rundenzeit_fahrer = ["{name} fuhr zuletzt {zeit}, du {eigene}."]
+# {zeit} z. B. "0,3"
+rundenzeit_er_schneller = ["Er war {zeit} Sekunden schneller."]
+rundenzeit_du_schneller = ["Du warst {zeit} Sekunden schneller."]
+
+# --- Holt er auf? {name} {zeit} {runden} {abstand} {bis} {rest} ---
+trend_er_holt_auf = ["{name} holt etwa {zeit} pro Runde auf. Bei {abstand} Abstand ist er in etwa {bis} Runden dran."]
+trend_ich_ziehe_weg = ["Nein, du fährst {name} etwa {zeit} pro Runde davon."]
+trend_ich_hole_auf = ["Du holst etwa {zeit} pro Runde auf {name} auf. Bei {abstand} Abstand bist du in etwa {bis} Runden dran."]
+trend_er_zieht_weg = ["{name} fährt dir etwa {zeit} pro Runde davon."]
+trend_gleich = ["Ihr seid gerade etwa gleich schnell, du und {name}."]
+trend_reicht_nicht = ["Bis ins Ziel sind es aber nur noch {rest} Runden."]
+
+# --- Schnellste: {name} {zeit} ---
+schnellste_zuletzt = ["Die schnellste letzte Runde hatte {name} mit {zeit}."]
+schnellste_runde = ["Die schnellste Runde des Rennens hat {name} mit {zeit}."]
+# Wird für {name} eingesetzt, wenn du selbst gemeint bist
+du = ["du"]
+
+# --- Sektoren: {name} {runden} {nr} {zeit} ---
+sektor_einleitung = ["Pro Runde auf {name}, Schnitt der letzten {runden} Runden:"]
+sektor_verlierst = ["Sektor {nr} verlierst du {zeit}."]
+sektor_gewinnst = ["Sektor {nr} gewinnst du {zeit}."]
+sektor_gleich = ["Sektor {nr} gleich."]
+sektor_am_meisten = ["Am meisten verlierst du in Sektor {nr}."]
+sektor_eigene_einleitung = ["Deine letzte Runde gegen deine besten Sektoren:"]
+sektor_eigener = ["Sektor {nr} {zeit} langsamer."]
+sektor_bestwert = ["Sektor {nr} so gut wie dein bester."]
+
+# --- Ausfälle: {namen} {anzahl} ---
+ausgefallen = ["Ausgefallen: {namen}."]
+niemand_ausgefallen = ["Bisher ist niemand ausgefallen."]
+
+# --- Frischeste Reifen um dich herum ---
+# {name} {platz} {reifen_beschreibung} {eigene} {alter}
+frisch_er = ["Die frischesten Reifen um dich herum hat {name} auf Platz {platz}: {reifen_beschreibung}. Deine sind {alter} Runden alt."]
+frisch_ich = ["Du hast die frischesten Reifen um dich herum: {reifen_beschreibung}."]
+
+# --- Plätze seit dem Start: {name} {start} {platz} {anzahl} {plaetze} ---
+plaetze_gut = ["Von Platz {start} auf Platz {platz}, du hast {plaetze} gutgemacht."]
+plaetze_verloren = ["Von Platz {start} auf Platz {platz}, du hast {plaetze} verloren."]
+plaetze_gleich = ["Du liegst auf deinem Startplatz {platz}."]
+plaetze_gut_fahrer = ["{name} ist von Platz {start} auf Platz {platz} nach vorne gefahren."]
+plaetze_verloren_fahrer = ["{name} ist von Platz {start} auf Platz {platz} zurückgefallen."]
+plaetze_gleich_fahrer = ["{name} liegt auf seinem Startplatz {platz}."]
+
+# --- Boxenstopp: {zeit} in Sekunden, {anzahl} gemessene Stopps ---
+verlust_gemessen = ["Ein Stopp kostet hier etwa {zeit} Sekunden, gemessen an {anzahl} Stopps."]
+verlust_gemessen_einer = ["Ein Stopp kostet hier etwa {zeit} Sekunden, gemessen an einem Stopp."]
+verlust_standard = ["Gerechnet mit {zeit} Sekunden pro Stopp, gemessen ist noch keiner."]
+standzeit = ["Die Standzeit liegt im Schnitt bei {zeit} Sekunden."]
+# Wo komme ich raus: {platz} {name} {abstand}
+rueckkehr_platz = ["Bei einem Stopp jetzt kämst du etwa auf Platz {platz} raus."]
+rueckkehr_vorne = ["{abstand} hinter {name}."]
+rueckkehr_hinten = ["{abstand} vor {name}."]
+rueckkehr_knapp = ["Das wird knapp."]
+rueckkehr_safety_car = ["Unter Safety Car kostet der Stopp weniger, du kämst also eher weiter vorne raus."]
+
+# --- Undercut: {name} {abstand} {alter} {vorteil} {sein_alter} {mein_alter} ---
+undercut_rechnung = ["{name} ist {abstand} vor dir auf {alter} Runden alten Reifen. Frische Reifen bringen dir geschätzt {vorteil} in der ersten Runde."]
+undercut_ja = ["Der Undercut könnte klappen."]
+undercut_knapp = ["Das wird knapp."]
+undercut_nein = ["Eher nicht, der Abstand ist zu groß."]
+undercut_verkehr = ["Außerdem kämst du hinter {name} in den Verkehr."]
+undercut_in_box = ["{name} ist gerade selbst in der Box."]
+undercut_hinter_mir = ["{name} liegt hinter dir, da gibt es nichts zu undercutten."]
+undercut_frischer = ["{name} hat frischere Reifen als du, {sein_alter} gegen {mein_alter} Runden. Ein Undercut bringt kaum etwas."]
+undercut_zu_wenig_daten = ["Dafür fehlen mir noch Rundenzeiten auf diesem Reifensatz."]
+
+# --- Wie lange halten die Reifen: {name} {prozent} {rate} {grenze} {runden} {rest} ---
+haltbarkeit = ["Verschleiß {prozent} Prozent, etwa {rate} Prozent pro Runde. Bis {grenze} Prozent noch etwa {runden} Runden."]
+haltbarkeit_fahrer = ["{name} hat {prozent} Prozent Verschleiß, etwa {rate} pro Runde. Bis {grenze} Prozent noch etwa {runden} Runden."]
+haltbarkeit_ueber = ["Die Reifen sind schon bei {prozent} Prozent, über deiner Grenze von {grenze}."]
+haltbarkeit_bis_ziel = ["Das reicht bis ins Ziel."]
+haltbarkeit_rest = ["Bis ins Ziel sind es noch {rest} Runden."]
+
+# --- Reifensätze: {liste} {anzahl} {prozent} ---
+reifensaetze = ["Noch verfügbar: {liste}."]
+satz_neu = ["{anzahl} neu"]
+satz_gebraucht = ["{anzahl} gebraucht mit {prozent} Prozent"]
+keine_reifensaetze = ["Keine weiteren Reifensätze verfügbar."]
+
+# --- Temperaturen in Grad: {vl} {vr} {hl} {hr} {grad} {strecke} {luft} ---
+temperatur_reifen = ["Reifen innen: vorne {vl} und {vr}, hinten {hl} und {hr} Grad."]
+temperatur_oberflaeche = ["Oberfläche im Schnitt {grad} Grad."]
+temperatur_bremsen = ["Bremsen vorne {vl} und {vr}, hinten {hl} und {hr} Grad."]
+temperatur_motor = ["Motor {grad} Grad."]
+temperatur_strecke = ["Strecke {strecke} Grad, Luft {luft} Grad."]
+
+# --- ERS: {prozent} {modus} ---
+ers = ["ERS bei {prozent} Prozent, Modus {modus}."]
+
+# --- Verwarnungen: {name} {track_limits} {gesamt} ---
+verwarnungen = ["Du hast {track_limits} Verwarnungen für Track Limits, insgesamt {gesamt}."]
+keine_verwarnungen = ["Du hast keine Verwarnungen."]
+verwarnungen_fahrer = ["{name} hat {track_limits} Verwarnungen für Track Limits, insgesamt {gesamt}."]
+keine_verwarnungen_fahrer = ["{name} hat keine Verwarnungen."]
+
+# --- Konstanz: {name} {runden} {schnitt} {streuung} {beste} {langsamste} ---
+konstanz = ["Schnitt der letzten {runden} Runden {schnitt}, Streuung {streuung} Sekunden. Schnellste {beste}, langsamste {langsamste}."]
+konstanz_sehr_gut = ["Sehr konstant."]
+konstanz_ok = ["Ordentlich konstant."]
+konstanz_schwankt = ["Die Zeiten schwanken noch deutlich."]
+konstanz_zu_wenig = ["Dafür brauche ich noch ein paar saubere Runden."]

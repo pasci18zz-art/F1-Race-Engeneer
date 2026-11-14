@@ -67,6 +67,10 @@ class Auto:
     rundendistanz: float = 0.0
     gesamtdistanz: float = 0.0
     strafen_s: int = 0
+    offene_durchfahrt: int = 0
+    offene_stop_go: int = 0
+    verwarnungen: int = 0
+    track_limits: int = 0
     # --- Car Status ---
     reifen_visuell: int = 0
     reifen_tatsaechlich: int = 0
@@ -74,7 +78,15 @@ class Auto:
     sprit_runden: float = 0.0
     sprit_kg: float = 0.0
     flagge: int = 0
+    ers_energie: float = 0.0  # Joule
+    ers_modus: int = 0
     status_bekannt: bool = False
+    # --- Car Telemetry ---
+    reifen_temp_innen: list[int] = field(default_factory=lambda: [0] * 4)
+    reifen_temp_oberflaeche: list[int] = field(default_factory=lambda: [0] * 4)
+    bremsen_temp: list[int] = field(default_factory=lambda: [0] * 4)
+    motor_temp: int = 0
+    telemetrie_bekannt: bool = False
     # --- Car Damage ---
     reifenverschleiss: list[float] = field(default_factory=lambda: [0.0] * 4)
     fluegel_vl: int = 0
@@ -91,6 +103,8 @@ class Auto:
     stints_aus_historie: bool = False
     boxenstopps: list[Boxenstopp] = field(default_factory=list)
     beste_runde_ms: int = 0
+    # Runden mit Safety Car, VSC oder roter Flagge (zaehlen nicht fuer Tempo-Vergleiche)
+    neutral_runden: set[int] = field(default_factory=set)
 
     # ------------------------------------------------------------------
     @property
