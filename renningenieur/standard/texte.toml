@@ -115,6 +115,16 @@ strafe_stop_go = ["Du hast eine Stop-and-Go-Strafe bekommen."]
 strafe_gegner_vorne = ["{name} vor dir hat {sekunden} Sekunden Zeitstrafe."]
 strafe_gegner_hinten = ["{name} hinter dir hat {sekunden} Sekunden Zeitstrafe."]
 
+# Ausfall: {name} {grund} {runde} {platz}; {grund} steht unter [ausfall_grund]
+ausfall = ["{name} ist {grund} ausgeschieden."]
+ausfall_ohne_grund = ["{name} ist ausgeschieden."]
+ausfall_du = ["Du bist {grund} ausgeschieden."]
+ausfall_du_ohne_grund = ["Du bist ausgeschieden."]
+# Gelbe Flagge: {sektor}
+gelbe_flagge = ["Gelbe Flagge in Sektor {sektor}."]
+gelbe_flagge_ohne_sektor = ["Gelbe Flagge."]
+gelbe_flagge_eigene = ["Gelbe Flagge."]
+
 format_fehler = ["Achtung, das Telemetrie-Format passt nicht. Bitte im Programmfenster nachsehen."]
 
 # ---------------------------------------------------------------------------
@@ -333,3 +343,14 @@ konstanz_sehr_gut = ["Sehr konstant."]
 konstanz_ok = ["Ordentlich konstant."]
 konstanz_schwankt = ["Die Zeiten schwanken noch deutlich."]
 konstanz_zu_wenig = ["Dafür brauche ich noch ein paar saubere Runden."]
+
+# ---------------------------------------------------------------------------
+# Gruende fuer einen Ausfall. Der Satz lautet "<Name> ist <Grund> ausgeschieden",
+# also zum Beispiel "ist wegen eines mechanischen Problems ausgeschieden".
+# ---------------------------------------------------------------------------
+[ausfall_grund]
+mechanisch = "wegen eines mechanischen Problems"
+schaden = "wegen eines schweren Schadens"
+schwarze_flagge = "wegen einer schwarzen Flagge"
+aufgegeben = "freiwillig"
+inaktiv = "wegen Inaktivität"

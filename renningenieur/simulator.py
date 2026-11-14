@@ -88,6 +88,17 @@ class SimAuto:
     strafe: int = 0
     rauschen: float = 0.0
     start_ab: float = 0.0
+    ausgefallen: bool = False
+    ausfall_grund: int = 0
+    ungueltig: set[int] = field(default_factory=set)  # Runden mit Streckenverstoss (Quali)
+
+    @property
+    def aktiv(self) -> bool:
+        return not self.fertig and not self.ausgefallen
+
+    def beste_gueltige(self) -> int:
+        zeiten = [ms for n, ms in enumerate(self.rundenzeiten, start=1) if n not in self.ungueltig]
+        return min(zeiten) if zeiten else 0
 
 
 class Simulator:
@@ -111,7 +122,10 @@ class Simulator:
         self.sc_phasen = 0
         self.gestartet = False
         self.rot_bis = 0.0  # > 0: rote Flagge bis zu diesem Zeitpunkt
+        self.gelb_zonen: set[int] = set()
         plan = SZENARIEN[szenario]
+        self.quali = bool(plan.get("quali"))
+        self.session_typ = 5 if self.quali else 15
         self.wetterplan: list[tuple[float, int]] = plan["wetter"]
         self.ereignisplan: list[tuple[float, str]] = sorted(plan.get("ereignisse", []))
         self.autos = [
@@ -126,6 +140,11 @@ class Simulator:
             a.stints = [[255, TATSAECHLICH[a.mischung], a.mischung]]
         self.autos[SPIELER].mischung = MEDIUM
         self.autos[SPIELER].stints = [[255, TATSAECHLICH[MEDIUM], MEDIUM]]
+        if self.quali:
+            for a in self.autos:
+                a.mischung, a.distanz, a.boxenplan = SOFT, 0.0, {}
+                a.stints = [[255, TATSAECHLICH[SOFT], SOFT]]
+                a.ungueltig = set(plan.get("ungueltig", {}).get(a.idx, ()))
         # Hintermann des Spielers ist anfangs schneller und rueckt auf
         self.autos[SPIELER + 1].tempo = -0.45
 
@@ -160,16 +179,24 @@ class Simulator:
         yield self.t, self._car_status()
         yield self.t, self._car_damage()
         yield self.t, self._lap_data()
-        # Startampel
-        for licht in range(1, 6):
+        if self.quali:
+            # Kein Start: die Autos rollen nacheinander aus der Box
+            yield from self._schritt(2.0)
+            self.gestartet = True
+            for a in self.autos:
+                a.runden_start = self.t
+                a.start_ab = self.t + 3.0 * a.idx
+        else:
+            # Startampel
+            for licht in range(1, 6):
+                yield from self._schritt(1.0)
+                yield self.t, encoder.event(f, self._hdr(), "STLG", {"num_lights": licht})
             yield from self._schritt(1.0)
-            yield self.t, encoder.event(f, self._hdr(), "STLG", {"num_lights": licht})
-        yield from self._schritt(1.0)
-        yield self.t, encoder.event(f, self._hdr(), "LGOT")
-        self.gestartet = True
-        for a in self.autos:
-            a.runden_start = self.t
-            a.start_ab = self.t + 0.9 * a.idx  # Feld zieht sich am Start auseinander
+            yield self.t, encoder.event(f, self._hdr(), "LGOT")
+            self.gestartet = True
+            for a in self.autos:
+                a.runden_start = self.t
+                a.start_ab = self.t + 0.9 * a.idx  # Feld zieht sich am Start auseinander
 
         schritt_nr = 0
         ende_ab = None
@@ -201,7 +228,7 @@ class Simulator:
             if ende_ab is None and any(a.fertig for a in self.autos):
                 ende_ab = self.t
                 yield self.t, encoder.event(f, self._hdr(), "CHQF")
-            if all(a.fertig for a in self.autos) or (ende_ab and self.t - ende_ab > 120):
+            if all(not a.aktiv for a in self.autos) or (ende_ab and self.t - ende_ab > 120):
                 break
         for a in self.autos:
             yield self.t, self._session_history(a)
@@ -223,6 +250,8 @@ class Simulator:
     # ------------------------------------------------------------------
     def _rundenzeit(self, a: SimAuto) -> float:
         zeit = BASISZEIT + a.tempo + MISCHUNG_TEMPO[a.mischung] + a.verschleiss * 0.03 + a.rauschen
+        if self.quali and (a.runde == 1 or a.runde >= self.runden):
+            zeit *= 1.2  # Ausfahrt- und Einfahrrunde sind langsam
         nass = self._nass()
         if nass and a.mischung not in (INTER, WET):
             zeit += 14.0
@@ -236,7 +265,7 @@ class Simulator:
 
     def _bewegen(self, dt: float) -> None:
         for a in self.autos:
-            if a.fertig or self.t < a.start_ab:
+            if not a.aktiv or self.t < a.start_ab:
                 continue
             if a.pit_status:
                 a.distanz += BOX_STRECKE / BOX_DAUER * dt
@@ -259,6 +288,8 @@ class Simulator:
             # Start/Ziel ueberquert?
             if a.distanz >= a.runde * STRECKENLAENGE:
                 a.letzte_runde_ms = int((self.t + dt - a.runden_start) * 1000)
+                if self.quali:  # genaue Zeit statt auf den Simulationsschritt gerundet
+                    a.letzte_runde_ms = int(self._rundenzeit(a) * 1000)
                 a.rundenzeiten.append(a.letzte_runde_ms)
                 a.runden_start = self.t + dt
                 a.alter += 1
@@ -273,6 +304,12 @@ class Simulator:
 
     def _positionen(self) -> None:
         def schluessel(a: SimAuto):
+            if self.quali:
+                # Qualifying: schnellste gueltige Runde, wer keine hat, steht hinten
+                beste = a.beste_gueltige()
+                return (0, beste, a.idx) if beste else (1, 0, a.idx)
+            if a.ausgefallen:
+                return (2, -a.distanz)  # Ausgefallene stehen am Ende
             # Im Ziel zaehlt die Zielzeit, sonst die Distanz
             return (0, a.zielzeit) if a.fertig else (1, -a.distanz)
 
@@ -306,6 +343,15 @@ class Simulator:
             self.sc_status = 0
             self.rot_bis = self.t + 40.0
             yield self.t, encoder.event(f, self._hdr(), "RDFL")
+        elif name.startswith("ausfall:"):
+            _, idx, grund = name.split(":")
+            a = self.autos[int(idx)]
+            a.ausgefallen, a.ausfall_grund = True, int(grund)
+            yield self.t, encoder.event(f, self._hdr(), "RTMT", {"vehicle_idx": a.idx, "reason": int(grund)})
+        elif name.startswith("gelb:"):
+            self.gelb_zonen.add(int(name.split(":")[1]))
+        elif name == "gelb_ende":
+            self.gelb_zonen.clear()
         elif name == "strafe_vordermann":
             ich = self.autos[SPIELER]
             vorne = next((a for a in self.autos if a.position == ich.position - 1), None)
@@ -322,7 +368,7 @@ class Simulator:
         f = self.fmt
         start = self.t
         for a in self.autos:
-            if not a.fertig:
+            if a.aktiv:
                 a.pit_status = 1
                 a.pit_start = self.t
         gewechselt = False
@@ -334,7 +380,7 @@ class Simulator:
                 gewechselt = True
                 # Spieler und jeder zweite Fahrer holen sich frische Reifen
                 for a in self.autos:
-                    if a.fertig:
+                    if not a.aktiv:
                         continue
                     if a.idx == SPIELER:
                         self._reifen_wechseln(a, SOFT, a.runde - 1)
@@ -351,7 +397,7 @@ class Simulator:
             yield self.t, self._session_history(self.autos[self.frame % len(self.autos)])
         # Restart: Aufstellung nach Position, 8 Meter Abstand
         self.rot_bis = 0.0
-        reihenfolge = sorted((a for a in self.autos if not a.fertig), key=lambda a: a.position)
+        reihenfolge = sorted((a for a in self.autos if a.aktiv), key=lambda a: a.position)
         if reihenfolge:
             spitze = reihenfolge[0].distanz
             for n, a in enumerate(reihenfolge):
@@ -365,7 +411,7 @@ class Simulator:
         for minuten in (0, 5, 10, 15, 30, 45, 60):
             w = self.wetter(self.t + minuten * 60)
             proben.append({
-                "session_type": 15, "time_offset": minuten, "weather": w,
+                "session_type": self.session_typ, "time_offset": minuten, "weather": w,
                 "track_temperature": 31 if w < 3 else 24, "air_temperature": 24 if w < 3 else 19,
                 "rain_percentage": {0: 2, 1: 5, 2: 20, 3: 70, 4: 95, 5: 100}[w],
             })
@@ -375,13 +421,13 @@ class Simulator:
             "weather": self.wetter(),
             "track_temperature": 24 if nass else 31,
             "air_temperature": 19 if nass else 24,
-            "total_laps": self.runden,
+            "total_laps": 0 if self.quali else self.runden,
             "track_length": int(STRECKENLAENGE),
-            "session_type": 15,
+            "session_type": self.session_typ,
             "track_id": self.strecke_id,
             "formula": 0,
-            "session_time_left": 7200,
-            "session_duration": 7200,
+            "session_time_left": max(int(1080 - self.t), 0) if self.quali else 7200,
+            "session_duration": 1080 if self.quali else 7200,
             "pit_speed_limit": 80,
             "safety_car_status": self.sc_status,
             "network_game": 1,
@@ -397,7 +443,10 @@ class Simulator:
             "game_mode": 28,
             "num_safety_car_periods": self.sc_phasen,
             "num_red_flag_periods": self.rote_flaggen,
-            "marshal_zones": [{"zone_start": i / 10, "zone_flag": 0} for i in range(10)],
+            "sector2_lap_distance_start": STRECKENLAENGE / 3,
+            "sector3_lap_distance_start": STRECKENLAENGE * 2 / 3,
+            "marshal_zones": [{"zone_start": i / 10, "zone_flag": 3 if i in self.gelb_zonen else 0}
+                              for i in range(10)],
         })
 
     def _lap_data(self) -> bytes:
@@ -416,10 +465,15 @@ class Simulator:
                     d_spitze = max(spitze.distanz - a.distanz, 0) / tempo * 1000
                 if not self.gestartet:
                     d_vorne = d_spitze = 0
+                if self.quali:
+                    b, b_vorne, b_spitze = a.beste_gueltige(), davor.beste_gueltige(), spitze.beste_gueltige()
+                    d_vorne = b - b_vorne if b and b_vorne else 0
+                    d_spitze = b - b_spitze if b and b_spitze else 0
             else:
                 d_vorne = d_spitze = 0
             cars.append({
                 "last_lap_time_ms": a.letzte_runde_ms,
+                "sector": min(int((a.distanz % STRECKENLAENGE) / (STRECKENLAENGE / 3)), 2) if a.distanz > 0 else 0,
                 "current_lap_time_ms": int(max(self.t - a.runden_start, 0) * 1000),
                 "delta_to_car_in_front_ms": d_vorne,
                 "delta_to_race_leader_ms": d_spitze,
@@ -429,11 +483,10 @@ class Simulator:
                 "current_lap_num": a.runde,
                 "pit_status": a.pit_status,
                 "num_pit_stops": a.stopps,
-                "sector": 0,
                 "penalties": a.strafe,
                 "grid_position": a.startplatz,
-                "driver_status": 0 if a.pit_status == 2 else 4,
-                "result_status": 3 if a.fertig else 2,
+                "driver_status": self._fahrerstatus(a),
+                "result_status": 4 if a.ausgefallen else 3 if a.fertig else 2,
                 "pit_lane_timer_active": 1 if a.pit_status else 0,
                 "pit_lane_time_in_lane_ms": min(int((self.t - a.pit_start) * 1000), 65535) if a.pit_status else 0,
                 "pit_stop_timer_ms": 2400 if a.pit_status and self.t > a.pit_wechsel else 0,
@@ -442,6 +495,23 @@ class Simulator:
                 "total_warnings": (int(self.t > 250) + int(self.t > 330)) if a.idx == SPIELER else 0,
             })
         return encoder.lap_data(self.fmt, self._hdr(), cars)
+
+    def _fahrerstatus(self, a: SimAuto) -> int:
+        """0 Garage, 1 fliegende Runde, 2 Einfahrrunde, 3 Ausfahrrunde, 4 auf der Strecke."""
+        if self.quali:
+            if a.fertig or a.ausgefallen or self.t < a.start_ab:
+                return 0
+            if a.runde == 1:
+                return 3
+            return 2 if a.runde >= self.runden else 1
+        return 0 if a.pit_status == 2 else 4
+
+    def _gelb_fuer(self, a: SimAuto) -> int:
+        """Zeigt die Flagge, die dieses Auto gerade sieht, gelb? (3 = gelb)"""
+        if not self.gelb_zonen or a.distanz <= 0:
+            return 0
+        anteil = (a.distanz % STRECKENLAENGE) / STRECKENLAENGE
+        return 3 if any(z / 10 <= anteil < z / 10 + 0.1 for z in self.gelb_zonen) else 0
 
     def _participants(self) -> bytes:
         cars = [{
@@ -461,6 +531,7 @@ class Simulator:
 
     def _car_status(self) -> bytes:
         cars = [{
+            "vehicle_fia_flags": self._gelb_fuer(a),
             "fuel_mix": 1,
             "front_brake_bias": 56,
             "fuel_in_tank": max(40 - a.distanz / STRECKENLAENGE * 2.2, 1.0),
@@ -523,9 +594,10 @@ class Simulator:
     def _session_history(self, a: SimAuto) -> bytes:
         laps = [{
             "lap_time_ms": ms, "sector1_ms": ms // 3, "sector2_ms": ms // 3,
-            "sector3_ms": ms - 2 * (ms // 3), "valid": True,
-        } for ms in a.rundenzeiten]
-        beste = a.rundenzeiten.index(min(a.rundenzeiten)) + 1 if a.rundenzeiten else 0
+            "sector3_ms": ms - 2 * (ms // 3), "valid": n not in a.ungueltig,
+        } for n, ms in enumerate(a.rundenzeiten, start=1)]
+        gueltig = [(ms, n) for n, ms in enumerate(a.rundenzeiten, start=1) if n not in a.ungueltig]
+        beste = min(gueltig)[1] if gueltig else 0
         return encoder.session_history(self.fmt, self._hdr(), {
             "car_idx": a.idx,
             "best_lap_time_lap_num": beste,
@@ -543,11 +615,12 @@ class Simulator:
                 "position": a.position,
                 "num_laps": len(a.rundenzeiten),
                 "grid_position": a.startplatz,
-                "points": punkte[a.position - 1] if a.position <= 10 else 0,
+                "points": punkte[a.position - 1] if a.position <= 10 and not self.quali and not a.ausgefallen else 0,
                 "num_pit_stops": a.stopps,
-                "result_status": 3,
-                "best_lap_time_ms": min(a.rundenzeiten) if a.rundenzeiten else 0,
-                "total_race_time": sum(a.rundenzeiten) / 1000.0,
+                "result_status": 4 if a.ausgefallen else 3,
+                "result_reason": a.ausfall_grund if a.ausgefallen else 2,
+                "best_lap_time_ms": a.beste_gueltige(),
+                "total_race_time": 0 if self.quali else sum(a.rundenzeiten) / 1000.0,
                 "penalties_time": a.strafe,
                 "num_penalties": 1 if a.strafe else 0,
                 "num_tyre_stints": len(stints),
@@ -586,6 +659,13 @@ SZENARIEN = {
         "boxen": _BOXEN_TROCKEN,
         "ereignisse": [(200, "rote_flagge")],
     },
+    # Qualifying (Q1): jeder faehrt eine Ausfahrrunde, schnelle Runden und eine Einfahrrunde
+    "qualifying": {
+        "wetter": [(0, 0)],
+        "quali": True,
+        "ungueltig": {2: (2,), 8: (2, 3), SPIELER: (3,)},
+        "ereignisse": [(330, "gelb:4"), (380, "gelb_ende")],
+    },
     # Alles zusammen
     "alles": {
         "wetter": [(0, 1), (300, 2), (700, 3), (860, 4)],
@@ -593,6 +673,8 @@ SZENARIEN = {
                   for i in range(len(FELD))},
         "ereignisse": [
             (150, "strafe_vordermann"),
+            (330, "ausfall:0:8"),  # Verstappen: mechanisches Problem
+            (345, "gelb:4"), (400, "gelb_ende"),
             (420, "sc"), (470, "sc_rein"), (500, "sc_ende"),
             (560, "rote_flagge"),
         ],

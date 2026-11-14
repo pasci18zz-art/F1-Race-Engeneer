@@ -11,6 +11,9 @@ Seiten und Schnittstellen:
     /api/sessions        gespeicherte Sessions
     /api/session?id=3    eine gespeicherte Session
     /api/info            Einstellungen fuer die Mikrofon-Taste
+    /api/wendepunkte     Reihenfolge bei Start, Safety Car, roter Flagge ... (Live)
+    /api/bericht?id=3&format=txt|json[&download=1]   Bericht einer gespeicherten Session
+    /api/bericht?live=1&format=txt|json[&download=1] Bericht der laufenden Session
     /ca.crt              Zertifizierungsstelle zum Installieren am Tablet
     POST /api/frage      {"text": "..."}  Frage stellen, Antwort wird auch gesprochen
     POST /api/sprache/start   Ingenieur schweigt kurz, waehrend das Tablet zuhoert
@@ -37,6 +40,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .. import befehle as bf
+from .. import bericht
 from ..schnappschuss import schnappschuss
 
 log = logging.getLogger(__name__)
@@ -201,6 +205,28 @@ class Webserver:
                     return
                 self._bytes(pfad.read_bytes(), TYPEN.get(pfad.suffix, "application/octet-stream"))
 
+            def _bericht(self, q: dict) -> None:
+                if q.get("live"):
+                    daten = schnappschuss(kern.zustand, mit_runden=True)
+                    if not daten.get("aktiv"):
+                        daten = None
+                else:
+                    db = kern.datenbank
+                    try:
+                        daten = db.session(int(q.get("id", ["0"])[0])) if db else None
+                    except ValueError:
+                        daten = None
+                if not daten:
+                    self._json({"ok": False, "fehler": "Keine Daten für den Bericht."}, 404)
+                    return
+                b = bericht.bericht_bauen(daten)
+                json_format = q.get("format", ["txt"])[0] == "json"
+                body = bericht.json_text(b) if json_format else bericht.bericht_text(b)
+                endung = "json" if json_format else "txt"
+                typ = "application/json" if json_format else "text/plain"
+                name = bericht.dateiname(b, endung) if q.get("download") else None
+                self._bytes(body.encode("utf-8"), f"{typ}; charset=utf-8", name)
+
             def do_GET(self) -> None:
                 url = urlparse(self.path)
                 q = parse_qs(url.query)
@@ -210,7 +236,14 @@ class Webserver:
                     elif url.path == "/api/live":
                         daten = schnappschuss(kern.zustand)
                         daten["funk"] = kern.funk.protokoll[-12:]
+                        daten["letzter_export"] = kern.letzter_export
                         self._json(daten)
+                    elif url.path == "/api/bericht":
+                        self._bericht(q)
+                    elif url.path == "/api/wendepunkte":
+                        with kern.zustand.lock:
+                            self._json({"anzahl": len(kern.zustand.momentaufnahmen),
+                                        "momentaufnahmen": [dict(m) for m in kern.zustand.momentaufnahmen]})
                     elif url.path == "/api/info":
                         self._json(web.info())
                     elif url.path == "/api/befehle":

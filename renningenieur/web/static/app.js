@@ -156,6 +156,96 @@ function ereignisliste(el, liste) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Qualifying-Tabelle (Live und Rückblick)                             */
+/* ------------------------------------------------------------------ */
+function qualiSortiert(autos) {
+  return autos.slice().sort((a, b) => {
+    const za = a.beste_runde_ms || Infinity, zb = b.beste_runde_ms || Infinity;
+    return za === zb ? a.position - b.position : za - zb;
+  });
+}
+function zeitAbstand(ms) {
+  if (!ms || ms <= 0) return "–";
+  return `+${komma(ms / 1000, 3)}`;
+}
+function statusChip(a) {
+  if (!a.fahrerstatus_text) return "";
+  const klasse = a.fahrerstatus === 1 ? "gut" : a.fahrerstatus === 0 ? "" : "warn";
+  return `<span class="marke klein ${klasse}">${esc(a.fahrerstatus_text)}</span>`;
+}
+
+function qualiTabelle(el, d, { live = false } = {}) {
+  const reihe = qualiSortiert(d.autos);
+  const linie = d.session.ausscheidung;
+  const bestzeit = reihe.length && reihe[0].beste_runde_ms ? reihe[0].beste_runde_ms : 0;
+  let html = `<table class="strat quali"><thead><tr><th></th><th>Fahrer</th>${live ? "<th>Status</th>" : ""}
+    <th class="r">Beste Zeit</th><th class="r">Auf P1</th><th class="r nur-breit">Vordermann</th>
+    <th class="r nur-breit">Letzte Runde</th><th class="r nur-breit">Runden</th><th>Reifen</th></tr></thead><tbody>`;
+  let davor = 0;
+  reihe.forEach((a, i) => {
+    const pos = i + 1;
+    const zeit = a.beste_runde_ms || 0;
+    const raus = linie && pos > linie;
+    const klassen = [a.ist_spieler ? "ich" : "", raus ? "raus" : "", linie && pos === linie ? "linie" : ""].join(" ").trim();
+    const r = a.reifen || {};
+    const rundenAnzahl = a.runden ? a.runden.length : (a.runden_gefahren ?? "–");
+    const reifenZelle = r.kurz ? reifenPunkt(r.kurz, r.farbe)
+      : (a.stints && a.stints.length ? reifenPunkt(a.stints[a.stints.length - 1].kurz, a.stints[a.stints.length - 1].farbe) : "–");
+    html += `<tr class="${klassen}"><td class="pos">${pos}</td>
+      <td class="name"><span class="team" style="background:${esc(a.farbe)}"></span>${esc(a.name)}${
+        !a.ki && !a.ist_spieler ? `<span class="mensch">Mitspieler</span>` : ""}</td>
+      ${live ? `<td>${statusChip(a)}</td>` : ""}
+      <td class="r zeit">${zeit ? rundenzeit(zeit) : `<span class="leise">keine Zeit</span>`}</td>
+      <td class="r">${zeit && pos > 1 ? zeitAbstand(zeit - bestzeit) : ""}</td>
+      <td class="r nur-breit">${zeit && davor && pos > 1 ? zeitAbstand(zeit - davor) : ""}</td>
+      <td class="r nur-breit">${rundenzeit(a.letzte_runde_ms)}</td>
+      <td class="r nur-breit">${rundenAnzahl}</td>
+      <td>${reifenZelle}</td></tr>`;
+    if (zeit) davor = zeit;
+  });
+  el.innerHTML = html + "</tbody></table>"
+    + (linie ? `<p class="leise">Die gestrichelte Linie unter Platz ${linie} ist die Ausscheidungslinie.</p>` : "");
+}
+
+/* ------------------------------------------------------------------ */
+/* Ausfälle und Wendepunkte (Rennen)                                   */
+/* ------------------------------------------------------------------ */
+function ausfaelleZeichnen(el, liste) {
+  el.innerHTML = liste && liste.length
+    ? liste.slice().reverse().map((e) => `<li><span class="zeit">Rd. ${e.runde} · ${uhr(e.zeit || 0)}</span>
+        <b>${esc(e.name)}</b> (${esc(e.team)}) – ${esc(e.grund)}, lag auf P${e.position}</li>`).join("")
+    : `<li class="leise">Bisher ist niemand ausgefallen.</li>`;
+}
+
+function wendepunkteZeichnen(el, liste) {
+  if (!liste || !liste.length) {
+    el.innerHTML = `<span class="leise">Noch nichts festgehalten.</span>`;
+    return;
+  }
+  const offen = new Set([...el.querySelectorAll("details[open]")].map((x) => x.dataset.nr));
+  el.innerHTML = liste.slice().reverse().map((m) => {
+    const nr = `${m.zeit}|${m.grund}`;
+    const zeilen = m.reihenfolge.map((r) => `<tr class="${r.ausgefallen ? "raus" : ""}">
+      <td class="pos">${r.position}</td><td>${esc(r.name)}</td>
+      <td class="r">${r.ausgefallen ? "ausgefallen" : r.position === 1 ? "Spitze" : (r.rueckstand_ms ? abstand(r.rueckstand_ms, 0) : "")}</td>
+      <td>${r.ausgefallen ? "" : esc(r.reifen) + " <span class='leise'>" + (r.reifenalter ? r.reifenalter + " Rd." : "neu") + "</span>"}${r.in_box ? ` <span class="box">BOX</span>` : ""}</td></tr>`).join("");
+    return `<details class="wende" data-nr="${esc(nr)}"${offen.has(nr) ? " open" : ""}>
+      <summary><b>${esc(m.text)}</b> <span class="leise">Runde ${m.runde} · ${uhr(m.zeit)}</span></summary>
+      <table class="strat"><tbody>${zeilen}</tbody></table></details>`;
+  }).join("");
+}
+
+let wendeAnzahl = -1;
+async function wendepunkteHolen(anzahl) {
+  if (anzahl === wendeAnzahl) return;
+  try {
+    const d = await (await fetch("/api/wendepunkte", { cache: "no-store" })).json();
+    wendeAnzahl = d.anzahl;
+    wendepunkteZeichnen($("wendepunkte"), d.momentaufnahmen);
+  } catch (e) { /* naechster Versuch in einer Sekunde */ }
+}
+
+/* ------------------------------------------------------------------ */
 /* Tooltip (Finger oder Maus)                                          */
 /* ------------------------------------------------------------------ */
 const tipp = $("tipp");
@@ -201,16 +291,32 @@ function liveZeichnen(d) {
   $("titel").textContent = `${s.strecke} · ${s.typ_name}`;
   $("untertitel").textContent = s.ist_rennen
     ? `Runde ${Math.min(s.runde, s.runden_gesamt)} von ${s.runden_gesamt} · ${uhr(s.zeit)}`
+    : s.ist_quali ? `${s.quali_teil ? s.quali_teil + " · " : ""}noch ${uhr(s.zeit_uebrig)} min`
     : `Session-Zeit ${uhr(s.zeit)}`;
   if (s.rote_flagge) marken.push(`<span class="marke gefahr">Rote Flagge</span>`);
   if (s.safety_car === 1) marken.push(`<span class="marke warn">Safety Car</span>`);
   if (s.safety_car === 2) marken.push(`<span class="marke warn">Virtuelles Safety Car</span>`);
   if (s.safety_car === 3) marken.push(`<span class="marke">Einführungsrunde</span>`);
+  if (s.gelb_sektoren && s.gelb_sektoren.length) {
+    marken.push(`<span class="marke warn">Gelb ${s.gelb_sektoren.filter((x) => x).map((x) => "S" + x).join(" ") || ""}</span>`);
+  }
   if (s.beendet) marken.push(`<span class="marke">Beendet</span>`);
   marken.push(`<span class="marke gut">Live</span>`);
   $("marken").innerHTML = marken.join("");
 
   const ich = d.autos.find((a) => a.ist_spieler);
+  $("quali-block").hidden = !s.ist_quali;
+  $("strategie-block").hidden = !!s.ist_quali;
+  $("rennen-extra").hidden = !s.ist_rennen;
+  if (s.ist_quali) {
+    qualiLiveZeichnen(d, ich);
+    ereignisliste($("ereignisse"), d.ereignisse);
+    const funkQ = (d.funk || []).slice().reverse();
+    $("funk").innerHTML = (letzteFrage ? `<li class="antwort">${esc(letzteFrage)}</li>` : "")
+      + (funkQ.length ? funkQ.map((t) => `<li>${esc(t)}</li>`).join("") : `<li class="leise">Noch keine Funksprüche.</li>`);
+    wetterUndPrognose(d, s);
+    return;
+  }
   karte("k-runde", "Position", ich ? `P${ich.position}` : "–",
     s.ist_rennen ? `Runde ${Math.min(ich ? ich.runde : s.runde, s.runden_gesamt)} / ${s.runden_gesamt}` : esc(s.typ_name));
   const regen = d.prognose.find((p) => p.wetter >= 3);
@@ -232,6 +338,44 @@ function liveZeichnen(d) {
     for (const id of ["k-vorne", "k-hinten", "k-reifen"]) karte(id, "", "–");
   }
 
+  wetterUndPrognose(d, s, true);
+  strategieTabelle($("strategie"), d, { live: true });
+  ereignisliste($("ereignisse"), d.ereignisse);
+  if (s.ist_rennen) {
+    ausfaelleZeichnen($("ausfaelle"), d.ausfaelle);
+    wendepunkteHolen(d.momentaufnahmen_anzahl);
+  }
+  const funk = (d.funk || []).slice().reverse();
+  $("funk").innerHTML = (letzteFrage ? `<li class="antwort">${esc(letzteFrage)}</li>` : "")
+    + (funk.length ? funk.map((t) => `<li>${esc(t)}</li>`).join("") : `<li class="leise">Noch keine Funksprüche.</li>`);
+}
+
+function qualiLiveZeichnen(d, ich) {
+  const s = d.session;
+  $("quali-titel").textContent = s.quali_teil ? `Qualifying ${s.quali_teil.replace("Q", "")}` : "Qualifying";
+  $("quali-hinweis").textContent = s.ausscheidung
+    ? `Bis Platz ${s.ausscheidung} kommen weiter · noch ${uhr(s.zeit_uebrig)}` : `noch ${uhr(s.zeit_uebrig)}`;
+  qualiTabelle($("quali-tabelle"), d, { live: true });
+  const reihe = qualiSortiert(d.autos);
+  const i = ich ? reihe.findIndex((a) => a.idx === ich.idx) : -1;
+  const zeit = ich ? ich.beste_runde_ms : 0;
+  const vorne = i > 0 ? reihe[i - 1] : null;
+  const hinten = i >= 0 && i + 1 < reihe.length ? reihe[i + 1] : null;
+  karte("k-runde", "Position", i >= 0 ? `P${i + 1}` : "–", `${esc(s.typ_name)}${s.ausscheidung ? ` · Linie P${s.ausscheidung}` : ""}`);
+  karte("k-vorne", "Vor dir", vorne && zeit && vorne.beste_runde_ms ? zeitAbstand(zeit - vorne.beste_runde_ms) : "–",
+    vorne ? `${esc(vorne.name)} · ${rundenzeit(vorne.beste_runde_ms)}` : "Du bist vorne");
+  karte("k-hinten", "Hinter dir", hinten && hinten.beste_runde_ms && zeit ? zeitAbstand(hinten.beste_runde_ms - zeit) : "–",
+    hinten ? `${esc(hinten.name)} · ${rundenzeit(hinten.beste_runde_ms)}` : "Niemand");
+  karte("k-reifen", "Deine Bestzeit", ich && zeit ? rundenzeit(zeit) : "–",
+    ich ? `Letzte Runde ${rundenzeit(ich.letzte_runde_ms)}${ich.fahrerstatus_text ? " · " + esc(ich.fahrerstatus_text) : ""}` : "");
+}
+
+function wetterUndPrognose(d, s, nurPrognose = false) {
+  if (!nurPrognose) {
+    const regenQ = d.prognose.find((p) => p.wetter >= 3);
+    karte("k-wetter", "Wetter", esc(s.wetter_name),
+      esc(s.wetter < 3 && regenQ ? `Regen in ca. ${regenQ.minuten} min` : `Strecke ${s.streckentemperatur} °C · Luft ${s.lufttemperatur} °C`));
+  }
   $("prognose").innerHTML = d.prognose.length
     ? d.prognose.map((p) => `<div class="prog${p.wetter >= 3 ? " regen" : ""}">
         <div class="wann">${p.minuten === 0 ? "jetzt" : "+" + p.minuten + " min"}</div>
@@ -240,11 +384,6 @@ function liveZeichnen(d) {
       + (d.prognose_genau ? "" : `<div class="prog"><div class="wann">Hinweis</div><div class="was">ungefähr</div><div class="proz">Prognose ungenau</div></div>`)
     : `<span class="leise">Keine Prognose für diese Session.</span>`;
   wetterverlauf($("wetterverlauf"), d.wetter_log, s.runden_gesamt, s.runde);
-  strategieTabelle($("strategie"), d, { live: true });
-  ereignisliste($("ereignisse"), d.ereignisse);
-  const funk = (d.funk || []).slice().reverse();
-  $("funk").innerHTML = (letzteFrage ? `<li class="antwort">${esc(letzteFrage)}</li>` : "")
-    + (funk.length ? funk.map((t) => `<li>${esc(t)}</li>`).join("") : `<li class="leise">Noch keine Funksprüche.</li>`);
 }
 
 async function liveHolen() {
@@ -312,7 +451,7 @@ function listeZeichnen() {
   const nurRennen = $("rb-nur-rennen").checked;
   const gruppen = new Map();
   for (const s of sessions) {
-    if (nurRennen && !s.ist_rennen) continue;
+    if (nurRennen && !s.ist_rennen && !s.ist_quali) continue;
     if (!gruppen.has(s.saison_id)) gruppen.set(s.saison_id, { name: s.saison_name || "Ohne Saison", liste: [] });
     gruppen.get(s.saison_id).liste.push(s);
   }
@@ -329,9 +468,9 @@ function listeZeichnen() {
       html += `<button class="rennen" data-session="${s.id}">
         <span><span class="ort">${esc(s.strecke)}</span><br><span class="leise">${esc(s.typ_name)} · ${datum(s.begonnen)}</span></span>
         <span><span class="platz">${s.spieler_position ? "P" + s.spieler_position : "–"}</span>
-          <span class="leise">${s.spieler_startplatz ? " von P" + s.spieler_startplatz : ""}</span></span>
-        <span class="leise">${stoppText(s.spieler_stopps)}</span>
-        <span>${folge(s.spieler_stints)}</span>
+          <span class="leise">${s.spieler_startplatz && !s.ist_quali ? " von P" + s.spieler_startplatz : ""}</span></span>
+        <span class="leise">${s.ist_quali ? "" : stoppText(s.spieler_stopps)}</span>
+        <span>${s.ist_quali ? "" : folge(s.spieler_stints)}</span>
         <span class="leise">${esc(wetterKurz(s))}${s.beendet ? "" : " · unvollständig"}</span></button>`;
     }
     html += "</div>";
@@ -339,7 +478,23 @@ function listeZeichnen() {
   $("rb-saisons").innerHTML = html;
 }
 
+function kennzahlenQuali(d) {
+  const reihe = qualiSortiert(d.autos);
+  const pole = reihe[0];
+  const i = reihe.findIndex((a) => a.ist_spieler);
+  const ich = i >= 0 ? reihe[i] : null;
+  const wetter = d.wetter_log.map((w) => w.wetter_name).filter((w, k, alle) => k === 0 || w !== alle[k - 1]).join(" → ");
+  const feld = (titel, wert) => `<div class="kennzahl"><div class="titel">${titel}</div><div class="wert">${wert}</div></div>`;
+  return `<div class="kennzahlen">
+    ${feld("Dein Platz", ich ? `P${i + 1}` : "–")}
+    ${feld("Deine Bestzeit", ich ? rundenzeit(ich.beste_runde_ms) : "–")}
+    ${feld("Auf die Pole", ich && pole && ich !== pole ? zeitAbstand(ich.beste_runde_ms - pole.beste_runde_ms) : "–")}
+    ${feld("Pole", pole && pole.beste_runde_ms ? `${esc(pole.name)} <span class="leise">${rundenzeit(pole.beste_runde_ms)}</span>` : "–")}
+    ${feld("Wetter", esc(wetter) || "–")}</div>`;
+}
+
 function kennzahlen(d) {
+  if (d.session.ist_quali) return kennzahlenQuali(d);
   const sieger = d.autos.find((a) => a.position === 1);
   const ich = d.autos.find((a) => a.ist_spieler);
   const gewertet = d.autos.filter((a) => a.boxenstopps_anzahl != null);
@@ -366,12 +521,24 @@ async function sessionOeffnen(id) {
   $("rb-liste").hidden = true;
   $("rb-detail").hidden = false;
   $("rb-kopf").innerHTML = `<div class="kopf-daten"><h3>${esc(s.strecke)} · ${esc(s.typ_name)}</h3>
-    <span class="leise">${esc(s.saison_name || "")} · ${datum(s.begonnen)} · ${s.runden_gefahren || 0} von ${s.runden_gesamt || "?"} Runden
+    <span class="leise">${esc(s.saison_name || "")} · ${datum(s.begonnen)} · ${s.ist_quali ? (s.runden_gefahren || 0) + " Runden" : (s.runden_gefahren || 0) + " von " + (s.runden_gesamt || "?") + " Runden"}
     ${s.rote_flaggen ? " · " + s.rote_flaggen + "× rote Flagge" : ""}${s.beendet ? "" : " · unvollständig"}</span></div>${kennzahlen(d)}`;
   wetterverlauf($("rb-wetter"), d.wetter_log, s.runden_gesamt, s.runden_gefahren);
-  legende($("rb-legende"));
-  strategieTabelle($("rb-strategie"), d);
+  $("rb-quali-block").hidden = !s.ist_quali;
+  $("rb-strategie-block").hidden = !!s.ist_quali;
+  if (s.ist_quali) {
+    $("rb-quali-titel").textContent = `Ergebnis ${s.quali_teil || "Qualifying"}`;
+    qualiTabelle($("rb-quali"), d);
+  } else {
+    legende($("rb-legende"));
+    strategieTabelle($("rb-strategie"), d);
+  }
+  $("rb-ausfaelle-block").hidden = !s.ist_rennen;
+  $("rb-wende-block").hidden = !s.ist_rennen;
+  ausfaelleZeichnen($("rb-ausfaelle"), d.ausfaelle);
+  wendepunkteZeichnen($("rb-wendepunkte"), d.momentaufnahmen);
   ereignisliste($("rb-ereignisse"), d.ereignisse);
+  berichtLinks("rb", `/api/bericht?id=${id}`);
   window.scrollTo(0, 0);
 }
 
@@ -398,6 +565,57 @@ $("rb-loeschen").addEventListener("click", async () => {
   $("rb-detail").hidden = true; $("rb-liste").hidden = false;
   sessionsLaden();
 });
+
+/* ------------------------------------------------------------------ */
+/* Bericht: anzeigen, kopieren, als Datei speichern                    */
+/* ------------------------------------------------------------------ */
+const berichtBasis = { lb: "/api/bericht?live=1" };
+
+function berichtLinks(vorsilbe, basis) {
+  berichtBasis[vorsilbe] = basis;
+  $(`${vorsilbe}-txt`).href = `${basis}&format=txt&download=1`;
+  $(`${vorsilbe}-json`).href = `${basis}&format=json&download=1`;
+  $(`${vorsilbe}-text`).hidden = true;
+  $(`${vorsilbe}-meldung`).textContent = "";
+}
+
+async function berichtHolen(vorsilbe) {
+  const antwort = await fetch(`${berichtBasis[vorsilbe]}&format=txt`, { cache: "no-store" });
+  if (!antwort.ok) throw new Error("kein Bericht");
+  return antwort.text();
+}
+
+function berichtVerdrahten(vorsilbe) {
+  const meldung = (text) => { $(`${vorsilbe}-meldung`).textContent = text; };
+  $(`${vorsilbe}-anzeigen`).addEventListener("click", async () => {
+    const feld = $(`${vorsilbe}-text`);
+    if (!feld.hidden) { feld.hidden = true; meldung(""); return; }
+    try {
+      feld.value = await berichtHolen(vorsilbe);
+      feld.hidden = false;
+      feld.rows = 24;
+      meldung("Zum Kopieren das Feld lange antippen und „Alles auswählen“ wählen, oder „Text kopieren“.");
+    } catch (e) { meldung("Dafür gibt es noch keine Daten."); }
+  });
+  $(`${vorsilbe}-kopieren`).addEventListener("click", async () => {
+    try {
+      const text = await berichtHolen(vorsilbe);
+      let kopiert = false;
+      if (navigator.clipboard && window.isSecureContext) {
+        try { await navigator.clipboard.writeText(text); kopiert = true; } catch (e) { /* Ersatz unten */ }
+      }
+      if (!kopiert) {
+        const feld = $(`${vorsilbe}-text`);
+        feld.value = text; feld.hidden = false; feld.rows = 24;
+        feld.focus(); feld.select();
+        kopiert = document.execCommand && document.execCommand("copy");
+      }
+      meldung(kopiert ? "Bericht kopiert. Jetzt irgendwo einfügen." : "Das Kopieren ging nicht. Markiere den Text im Feld und kopiere ihn von Hand.");
+    } catch (e) { meldung("Dafür gibt es noch keine Daten."); }
+  });
+}
+berichtVerdrahten("lb");
+berichtVerdrahten("rb");
 
 /* ------------------------------------------------------------------ */
 /* Vergleich                                                           */

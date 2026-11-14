@@ -505,6 +505,61 @@ testen.
 - Infos zu anderen Mitspielern, etwa deinem Kumpel, gibt es nur bei
   „Ihre Telemetrie: Öffentlich“.
 
+## Q. Qualifying, Ausfälle, gelbe Flaggen und der Bericht
+
+**Was neu ist**
+
+- **Ausfälle mit Grund.** Scheidet jemand aus, sagt der Ingenieur es an:
+  *„Verstappen ist wegen eines mechanischen Problems ausgeschieden.“*
+  Bei dir selbst: *„Du bist ausgeschieden …“*. Die Runde und der Grund stehen
+  außerdem auf der Seite (Block „Ausfälle“) und im Bericht. Fragen kannst du
+  jederzeit: „Wer ist ausgefallen?“
+- **Gelbe Flagge.** *„Gelbe Flagge in Sektor 2.“* Das kommt nur, wenn die
+  Stelle in der nächsten Zeit vor dir liegt (nicht beim Fahren durch die Box,
+  nicht unter Safety Car oder roter Flagge, nicht im Training). Zeigt das Spiel
+  dir selbst gelb, kommt *„Gelbe Flagge.“* Ein- oder ausschalten und die
+  „Vorausschau“ ändern in `config.toml` unter `[warnungen]`:
+  `ausfaelle = true`, `gelbe_flagge = true`, `gelb_vorausschau = 0.35`
+  (Anteil einer Runde). Die Sätze stehen in `texte.toml` unter `[warnung]`
+  (`ausfall`, `gelbe_flagge`, …) und `[ausfall_grund]`.
+- **Qualifying-Ansicht.** In einer Qualifying-Session zeigt die Seite statt der
+  Strategie-Tabelle eine Zeitenliste: wer welche Bestzeit hat, Abstand zu
+  Platz 1 und zum Vordermann, letzte Runde, Zahl der Runden und was das Auto
+  gerade macht (fliegende Runde, Einfahrrunde, Garage …). Ungültige Runden
+  zählen nicht. Bei Q1 und Q2 ist die **Ausscheidungslinie** eingezeichnet
+  (Q1: hinteres Viertel, Q2: Platz 10). Oben stehen die Restzeit und die
+  Abstände zu dir.
+- **Wendepunkte im Rennen.** Die Reihenfolge wird festgehalten beim Start, bei
+  Safety Car und virtuellem Safety Car (und wenn es endet), bei roter Flagge, beim
+  Restart und alle 10 Runden. Auf der Seite im Block „Wendepunkte“ aufklappen.
+
+**Der Bericht (Datei zum Mitnehmen)**
+
+1. **Automatisch:** am Ende jedes Rennens und Qualifyings schreibt das Programm
+   zwei Dateien in den Ordner **`exporte`** im Programmordner, z. B.
+   `2025-06-01_20-15-33_Rennen_Monza.txt` und `….json`. Abschalten oder auch
+   Trainings speichern: `config.toml`, Abschnitt `[export]`.
+2. **Von Hand am Tablet:** auf der Seite (Live oder Rückblick, ganz unten) im
+   Block „Bericht“:
+   - **Bericht anzeigen** – der Text erscheint zum Lesen,
+   - **Text kopieren** – Zwischenablage, dann irgendwo einfügen
+     (klappt der Knopf nicht, das Textfeld lange antippen → „Alles auswählen“),
+   - **Als Textdatei / JSON-Datei speichern** – landet im Download-Ordner des
+     Tablets.
+3. **Inhalt:** Wetterverlauf, Endergebnis bzw. Zeitenliste, schnellste Runde,
+   Ausfälle mit Runde und Grund, Safety Car, rote und gelbe Flaggen, Strafen,
+   Reihenfolge zu den wichtigen Zeitpunkten, Positionen nach jeder Runde,
+   Reifen je Fahrer (welche Mischung in welchen Runden, Verschleiß am Ende des
+   Satzes und pro Runde), Boxenstopps und die Rundenzeiten von dir und deinem
+   Kumpel.
+4. **Für die Manager-App:** die `.json`-Datei. Der Aufbau ist in
+   `BERICHT_FORMAT.md` beschrieben. Zum Ausprobieren ohne Spiel:
+   `simulation.bat` mit dem Szenario `qualifying` oder `alles`.
+
+**Wichtig:** Eine bestehende Datenbank (`renningenieur.sqlite`) wird beim
+nächsten Start automatisch erweitert, nichts geht verloren. Rennen, die du
+vorher gefahren hast, haben natürlich noch keine Ausfälle und Wendepunkte.
+
 ## Wenn etwas nicht klappt
 
 | Was du siehst | Was zu tun ist |

@@ -160,9 +160,10 @@ def befehl_simulation(args) -> int:
     if args.liste:
         print("Szenarien:", ", ".join(SZENARIEN))
         return 0
-    sim = Simulator(args.szenario, fmt=args.format, runden=args.runden, seed=args.seed,
+    runden = args.runden or (4 if args.szenario == "qualifying" else 12)
+    sim = Simulator(args.szenario, fmt=args.format, runden=runden, seed=args.seed,
                     strecke_id=args.strecke, saison_id=args.saison, wochenende_id=args.wochenende)
-    print(f"Simuliere Szenario '{args.szenario}' (UDP-Format {args.format}, {args.runden} Runden) "
+    print(f"Simuliere Szenario '{args.szenario}' (UDP-Format {args.format}, {runden} Runden) "
           f"an {args.host}:{args.port}, Tempo {args.tempo}x. Abbrechen mit Strg+C.")
     try:
         anzahl = senden(sim, args.host, args.port, args.tempo)
@@ -307,7 +308,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--liste", action="store_true", help="Szenarien anzeigen")
     s.add_argument("--tempo", type=float, default=1.0, help="Zeitraffer, z. B. 5")
     s.add_argument("--format", type=int, default=2025, choices=(2025, 2026))
-    s.add_argument("--runden", type=int, default=12)
+    s.add_argument("--runden", type=int, default=0, help="Rennrunden (Standard 12, Qualifying 4)")
     s.add_argument("--seed", type=int, default=1)
     s.add_argument("--strecke", type=int, default=11, help="Strecken-ID (11 = Monza)")
     s.add_argument("--saison", type=int, default=2025001)

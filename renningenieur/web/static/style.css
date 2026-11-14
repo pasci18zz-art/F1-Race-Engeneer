@@ -302,3 +302,22 @@ details.bf-karte[open] > summary { margin-bottom: 6px; }
 
 .bf-ziele { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px; }
 .bf-ziele .bf-ziel { margin-bottom: 0; }
+
+/* --- Qualifying, Wendepunkte, Bericht --- */
+.marke.klein { padding: 1px 8px; font-size: 11px; }
+.strat.quali td.zeit { font-weight: 650; }
+.strat.quali tr.linie td { border-bottom: 2px dashed var(--gefahr); }
+.strat.quali tr.raus td { color: var(--text-2); }
+details.wende { border-top: 1px solid var(--linie); padding: 6px 0; }
+details.wende:first-child { border-top: 0; }
+details.wende > summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; gap: 10px; }
+details.wende .strat { margin-top: 6px; }
+a.knopf {
+  font: inherit; color: var(--text); background: var(--karte-2); border: 1px solid var(--linie);
+  border-radius: 8px; padding: 8px 14px; min-height: 40px; display: inline-flex; align-items: center;
+  text-decoration: none;
+}
+.bericht-meldung { margin-top: 8px; min-height: 18px; }
+textarea.bericht-text { margin-top: 8px; font: 13px/1.35 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre; overflow: auto; }
+
+[hidden] { display: none !important; }

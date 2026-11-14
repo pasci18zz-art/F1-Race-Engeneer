@@ -43,12 +43,32 @@
         <div id="wetterverlauf" class="wetterverlauf"></div>
       </div>
 
-      <div class="block">
+      <div class="block" id="quali-block" hidden>
+        <div class="block-kopf">
+          <h2 id="quali-titel">Qualifying</h2>
+          <span class="leise" id="quali-hinweis"></span>
+        </div>
+        <div id="quali-tabelle" class="rollbar"></div>
+      </div>
+
+      <div class="block" id="strategie-block">
         <div class="block-kopf">
           <h2>Strategie</h2>
           <div class="legende" id="legende"></div>
         </div>
         <div id="strategie"></div>
+      </div>
+
+      <div class="zwei-spalten" id="rennen-extra">
+        <div class="block" id="ausfaelle-block">
+          <h2>Ausfälle</h2>
+          <ul id="ausfaelle" class="liste"></ul>
+        </div>
+        <div class="block" id="wende-block">
+          <h2>Wendepunkte</h2>
+          <p class="leise">So sah die Reihenfolge bei Start, Safety Car, roter Flagge und Restart aus.</p>
+          <div id="wendepunkte"></div>
+        </div>
       </div>
 
       <div class="zwei-spalten">
@@ -65,6 +85,19 @@
           <ul id="ereignisse" class="liste"></ul>
         </div>
       </div>
+
+<div class="block" id="lb-bericht">
+  <h2>Bericht</h2>
+  <p class="leise">Alles zur laufenden Session in einer Datei: Wetter, Ergebnis, Ausfälle, Reifen, Rundenzeiten. Nach jedem Rennen und Qualifying wird sie auch automatisch im Ordner „exporte“ am PC abgelegt.</p>
+  <div class="bf-knoepfe">
+    <button type="button" id="lb-anzeigen">Bericht anzeigen</button>
+    <button type="button" id="lb-kopieren">Text kopieren</button>
+    <a class="knopf" id="lb-txt" href="/api/bericht?live=1&format=txt&download=1" download>Als Textdatei speichern</a>
+    <a class="knopf" id="lb-json" href="/api/bericht?live=1&format=json&download=1" download>Als JSON-Datei speichern</a>
+  </div>
+  <div id="lb-meldung" class="leise bericht-meldung"></div>
+  <textarea id="lb-text" class="bericht-text" readonly hidden spellcheck="false"></textarea>
+</div>
     </div>
   </section>
 
@@ -73,7 +106,7 @@
     <div id="rb-liste">
       <div class="block-kopf">
         <h2>Gespeicherte Sessions</h2>
-        <label class="schalter"><input type="checkbox" id="rb-nur-rennen" checked> nur Rennen</label>
+        <label class="schalter"><input type="checkbox" id="rb-nur-rennen" checked> nur Rennen und Qualifying</label>
       </div>
       <div id="rb-saisons"></div>
     </div>
@@ -84,17 +117,44 @@
         <h2>Wetterverlauf</h2>
         <div id="rb-wetter" class="wetterverlauf"></div>
       </div>
-      <div class="block">
+      <div class="block" id="rb-quali-block" hidden>
+        <h2 id="rb-quali-titel">Ergebnis</h2>
+        <div id="rb-quali" class="rollbar"></div>
+      </div>
+      <div class="block" id="rb-strategie-block">
         <div class="block-kopf">
           <h2>Strategie aller Fahrer</h2>
           <div class="legende" id="rb-legende"></div>
         </div>
         <div id="rb-strategie"></div>
       </div>
+      <div class="zwei-spalten">
+        <div class="block" id="rb-ausfaelle-block">
+          <h2>Ausfälle</h2>
+          <ul id="rb-ausfaelle" class="liste"></ul>
+        </div>
+        <div class="block" id="rb-wende-block">
+          <h2>Wendepunkte</h2>
+          <div id="rb-wendepunkte"></div>
+        </div>
+      </div>
       <div class="block">
         <h2>Ereignisse</h2>
         <ul id="rb-ereignisse" class="liste"></ul>
       </div>
+
+<div class="block" id="rb-bericht">
+  <h2>Bericht</h2>
+  <p class="leise">Diese Session als Datei: zum Lesen (.txt) oder zum Einlesen in eine Manager-App (.json).</p>
+  <div class="bf-knoepfe">
+    <button type="button" id="rb-anzeigen">Bericht anzeigen</button>
+    <button type="button" id="rb-kopieren">Text kopieren</button>
+    <a class="knopf" id="rb-txt" href="#" download>Als Textdatei speichern</a>
+    <a class="knopf" id="rb-json" href="#" download>Als JSON-Datei speichern</a>
+  </div>
+  <div id="rb-meldung" class="leise bericht-meldung"></div>
+  <textarea id="rb-text" class="bericht-text" readonly hidden spellcheck="false"></textarea>
+</div>
       <button id="rb-loeschen" class="gefahr">Diese Session löschen</button>
     </div>
   </section>

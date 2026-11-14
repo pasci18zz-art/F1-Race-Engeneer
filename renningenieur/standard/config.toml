@@ -113,6 +113,12 @@ abstand_hinten_pause = 45
 abstand_hinten_ab_runde = 2
 
 # --- Sonstiges ---
+# Ansage, wer ausgeschieden ist und warum
+ausfaelle = true
+# Gelbe Flagge ansagen (nur wenn sie vor dir liegt oder für dich gilt)
+gelbe_flagge = true
+# So weit voraus (Anteil einer Runde, 0.35 = gut ein Drittel) zählt eine gelbe Zone
+gelb_vorausschau = 0.35
 safety_car = true
 rote_flagge = true
 strafen = true
@@ -172,6 +178,15 @@ feste_sekunden = 0
 # Hört die Taste in den ersten Sekunden gar nichts, bricht sie nach so
 # vielen Sekunden ab.
 warten_sekunden = 5
+
+[export]
+# Nach jedem Rennen und Qualifying schreibt das Programm automatisch einen
+# Bericht (Textdatei zum Lesen und JSON-Datei für die Manager-App).
+aktiv = true
+# Ordner neben der config.toml
+ordner = "exporte"
+# Auch Trainings und Zeitfahren speichern?
+training = false
 
 [datenbank]
 aktiv = true

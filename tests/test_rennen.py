@@ -99,6 +99,8 @@ class TestRennenAlles(unittest.TestCase):
 
     def test_rundenzeiten_vollstaendig(self):
         for a in self.z.gueltige_autos():
+            if a.ausgefallen_runde:
+                continue  # Verstappen scheidet in Runde 5 aus
             self.assertEqual(sorted(a.rundenzeiten), list(range(1, 13)), a.name)
 
     def test_wetterverlauf(self):

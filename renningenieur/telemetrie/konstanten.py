@@ -187,3 +187,84 @@ RESULT_AKTIV = 2
 
 # --- Safety Car -------------------------------------------------------------
 SC_KEINS, SC_VOLL, SC_VIRTUELL, SC_FORMATION = 0, 1, 2, 3
+
+
+# --- Ausfaelle (Retirement-Event, Feld "reason") -------------------------------
+# 0 ungueltig, 1 aufgegeben, 2 im Ziel, 3 schwerer Schaden, 4 inaktiv, 5 zu wenige
+# Runden, 6 schwarze Flagge, 7 rote Flagge, 8 mechanisches Problem, 9 Session
+# uebersprungen, 10 Session simuliert.
+AUSFALL_ECHT = (1, 3, 4, 6, 8)  # nur diese sind ein echter Ausfall im Rennen
+AUSFALL_GRUND = {
+    0: "unbekannt", 1: "aufgegeben", 2: "im Ziel", 3: "schwerer Schaden", 4: "inaktiv",
+    5: "zu wenige Runden", 6: "schwarze Flagge", 7: "rote Flagge", 8: "mechanisches Problem",
+    9: "Session übersprungen", 10: "Session simuliert",
+}
+# Schluessel in texte.toml unter [ausfall_grund]
+AUSFALL_TEXT_SCHLUESSEL = {1: "aufgegeben", 3: "schaden", 4: "inaktiv", 6: "schwarze_flagge",
+                           8: "mechanisch"}
+
+# --- Qualifying ------------------------------------------------------------------
+# Session-Typen 5 bis 14: Q1-Q3, kurzes Q, Einzelrunden-Q und die Sprint-Shootouts
+QUALI_SESSIONS = tuple(range(5, 15))
+TRAINING_SESSIONS = (1, 2, 3, 4)
+
+
+def ist_quali(session_type: int) -> bool:
+    return session_type in QUALI_SESSIONS
+
+
+def quali_teil(session_type: int) -> str:
+    """"Q1", "Q2", "Q3" oder "" (kurzes Qualifying ohne Ausscheiden)."""
+    return {5: "Q1", 6: "Q2", 7: "Q3", 10: "SQ1", 11: "SQ2", 12: "SQ3"}.get(session_type, "")
+
+
+def ausscheidungslinie(session_type: int, anzahl_autos: int) -> int | None:
+    """Letzter Platz, der weiterkommt (None = kein Ausscheiden).
+
+    Q1 / SQ1: das hintere Viertel (20 Autos: 5, 22 Autos: 6) scheidet aus.
+    Q2 / SQ2: es kommen die ersten 10 weiter.
+    """
+    if session_type in (5, 10):
+        return max(anzahl_autos - round(anzahl_autos / 4), 1)
+    if session_type in (6, 11):
+        return 10
+    return None
+
+
+# --- Strafen (Penalty-Event) ---------------------------------------------------
+STRAFARTEN = {
+    0: "Durchfahrtsstrafe", 1: "Stop-and-Go", 2: "Startplatzstrafe", 3: "Strafen-Erinnerung",
+    4: "Zeitstrafe", 5: "Verwarnung", 6: "Disqualifikation", 7: "Aus der Einführungsrunde genommen",
+    8: "Zu lange geparkt", 9: "Reifenvorschrift", 10: "Runde ungültig",
+    11: "Diese und nächste Runde ungültig", 12: "Runde ungültig", 13: "Diese und nächste Runde ungültig",
+    14: "Diese und vorherige Runde ungültig", 15: "Diese und vorherige Runde ungültig",
+    16: "Aufgegeben", 17: "Schwarze Flagge",
+}
+VERGEHEN = {
+    0: "Blockieren durch langsames Fahren", 1: "Blockieren durch Falschfahren",
+    2: "Rückwärts von der Startlinie", 3: "Schwere Kollision", 4: "Leichte Kollision",
+    5: "Platz nach Kollision nicht zurückgegeben", 6: "Platz nach Kollision nicht zurückgegeben",
+    7: "Abkürzen mit Zeitgewinn", 8: "Überholen durch Abkürzen", 9: "Überholen durch Abkürzen",
+    10: "Boxenausfahrt überfahren", 11: "Blaue Flaggen ignoriert", 12: "Gelbe Flaggen ignoriert",
+    13: "Durchfahrtsstrafe ignoriert", 14: "Zu viele Durchfahrtsstrafen",
+    15: "Durchfahrtsstrafe bald abzusitzen", 16: "Durchfahrtsstrafe diese Runde abzusitzen",
+    17: "Zu schnell in der Boxengasse", 18: "Zu lange geparkt", 19: "Reifenvorschrift missachtet",
+    20: "Zu viele Strafen", 21: "Mehrere Verwarnungen", 22: "Disqualifikation droht",
+    23: "Reifenvorschrift", 24: "Reifenvorschrift", 25: "Runde ungültig (Abkürzen)",
+    26: "Runde ungültig (neben der Strecke)", 27: "Neben der Strecke mit kleinem Zeitgewinn",
+    28: "Neben der Strecke mit deutlichem Zeitgewinn", 29: "Neben der Strecke mit extremem Zeitgewinn",
+    30: "Runde ungültig (Wand berührt)", 31: "Runde ungültig (Flashback benutzt)",
+    32: "Runde ungültig (auf die Strecke zurückgesetzt)", 33: "Boxengasse blockiert",
+    34: "Fehlstart", 35: "Kollision mit dem Safety Car", 36: "Safety Car illegal überholt",
+    37: "Safety-Car-Tempo überschritten", 38: "Virtual-Safety-Car-Tempo überschritten",
+    39: "Einführungsrunde zu langsam", 40: "Einführungsrunde geparkt", 41: "Mechanischer Defekt",
+    42: "Schwerer Schaden", 43: "Zu weit hinter dem Safety Car", 44: "Schwarze-Flagge-Zeit",
+    45: "Stop-and-Go nicht abgesessen", 46: "Durchfahrtsstrafe nicht abgesessen",
+    47: "Motorteil gewechselt", 48: "Getriebe gewechselt", 49: "Parc-Fermé-Änderung",
+    50: "Ligastrafe", 51: "Wiederholungsstrafe", 52: "Unerlaubter Zeitgewinn",
+    53: "Pflicht-Boxenstopp", 54: "Zugewiesen",
+}
+
+
+# Lap Data "driver_status": was das Auto gerade macht (vor allem im Qualifying wichtig)
+FAHRERSTATUS = {0: "Garage", 1: "Fliegende Runde", 2: "Einfahrrunde", 3: "Ausfahrrunde", 4: "Auf der Strecke"}

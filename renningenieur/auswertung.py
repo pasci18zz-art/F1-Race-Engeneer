@@ -114,11 +114,15 @@ class Auswertung:
         z.boxen_rueckkehr_position = p["pit_stop_rejoin_position"]
         z.spielmodus = p["game_mode"]
         z.pausiert = bool(p["game_paused"])
+        z.marshal_zonen = p["marshal_zones"]
+        z.sektor2_start = p["sector2_lap_distance_start"]
+        z.sektor3_start = p["sector3_lap_distance_start"]
         z.session_bekannt = True
         if neu:
             self._wetter_eintrag()
             self._melde("session_start")
             return
+        self._gelbe_flaggen()
         if z.wetter != altes_wetter:
             self._wetter_eintrag()
             self._protokoll("WETTER", f"Wetter: {k.WETTER.get(z.wetter, z.wetter)}")
@@ -127,7 +131,62 @@ class Auswertung:
             namen = {0: "Strecke frei", 1: "Safety Car", 2: "Virtuelles Safety Car",
                      3: "Einführungsrunde"}
             self._protokoll("SC", namen.get(z.safety_car, "Safety Car"))
+            if z.ist_rennen:
+                if z.safety_car == k.SC_VOLL:
+                    self._momentaufnahme("safety_car", "Safety Car")
+                elif z.safety_car == k.SC_VIRTUELL:
+                    self._momentaufnahme("vsc", "Virtuelles Safety Car")
+                elif z.safety_car == k.SC_KEINS and altes_sc in (k.SC_VOLL, k.SC_VIRTUELL):
+                    ende = "Safety Car" if altes_sc == k.SC_VOLL else "Virtuelles Safety Car"
+                    self._momentaufnahme("gruen", f"{ende} beendet, Rennen freigegeben")
             self._melde("safety_car", alt=altes_sc, neu=z.safety_car)
+
+    def _gelbe_flaggen(self) -> None:
+        """Erkennt neue und beendete gelbe Marschallzonen."""
+        z = self.z
+        jetzt = {i for i, m in enumerate(z.marshal_zonen) if m["zone_flag"] == 3}
+        neu = jetzt - z.gelb_zonen
+        vorher_leer = not z.gelb_zonen
+        z.gelb_zonen = jetzt
+        ich = z.spieler
+        if neu:
+            for sektor in sorted({z.sektor_der_zone(i) for i in neu}):
+                zonen = [i for i in neu if z.sektor_der_zone(i) == sektor]
+                voraus = None
+                if ich is not None:
+                    voraus = min((z.zone_voraus(i, ich) for i in zonen
+                                  if z.zone_voraus(i, ich) is not None), default=None)
+                text = f"Gelbe Flagge in Sektor {sektor}" if sektor else "Gelbe Flagge"
+                self._protokoll("GELB", text)
+                self._melde("gelbe_flagge", sektor=sektor, voraus=voraus)
+        elif not jetzt and not vorher_leer:
+            self._protokoll("GELB", "Gelbe Flagge beendet")
+            self._melde("gelbe_flagge_ende")
+
+    # --- Momentaufnahme der Reihenfolge ---------------------------------
+    def _momentaufnahme(self, grund: str, text: str) -> None:
+        z = self.z
+        autos = z.gueltige_autos()
+        if not autos:
+            return
+        letzte = z.momentaufnahmen[-1] if z.momentaufnahmen else None
+        if letzte and letzte["grund"] == grund and abs(letzte["zeit"] - z.session_time) < 3:
+            return  # Dasselbe Ereignis kam ueber zwei Wege (Event und Session-Paket)
+        z.momentaufnahmen.append({
+            "zeit": round(z.session_time, 1),
+            "runde": z.fuehrungsrunde(),
+            "grund": grund,
+            "text": text,
+            "reihenfolge": [{
+                "position": a.position, "idx": a.idx, "name": a.anzeigename, "team": a.team,
+                "rueckstand_ms": a.delta_fuehrender_ms if a.position > 1 else 0,
+                "intervall_ms": a.delta_vorne_ms if a.position > 1 else 0,
+                "reifen": k.reifen(a.reifen_visuell)["kurz"], "reifenalter": a.reifenalter,
+                "in_box": a.in_box, "ausgefallen": a.result_status in (4, 5, 6, 7),
+            } for a in autos],
+        })
+        del z.momentaufnahmen[:-60]
+        self._protokoll("STAND", f"Reihenfolge festgehalten: {text}")
 
     def _wetter_eintrag(self) -> None:
         z = self.z
@@ -175,6 +234,7 @@ class Auswertung:
             a.rundendistanz = c["lap_distance"]
             a.gesamtdistanz = c["total_distance"]
             a.strafen_s = c["penalties"]
+            a.aktuelle_runde_ms = c["current_lap_time_ms"]
             a.offene_durchfahrt = c["num_unserved_drive_through_pens"]
             a.offene_stop_go = c["num_unserved_stop_go_pens"]
             a.verwarnungen = c["total_warnings"]
@@ -239,6 +299,9 @@ class Auswertung:
             # Sicherheitsnetz, falls nach roter Flagge kein Ampel-Event kam
             z.rote_flagge = False
             self._melde("restart")
+        if z.ist_rennen and a.position == 1 and runde % 10 == 0 and runde < z.runden_gesamt \
+                and not z.rote_flagge and z.safety_car == k.SC_KEINS:
+            self._momentaufnahme("zwischenstand", f"Nach Runde {runde}")
         self._melde("runde", idx=a.idx, runde=runde, zeit_ms=zeit_ms)
 
     _rote_flagge_zeit = 0.0
@@ -263,7 +326,9 @@ class Auswertung:
             a.reifen_visuell, a.reifen_tatsaechlich, a.reifenalter = vis, act, alter
             a.sprit_runden = c["fuel_remaining_laps"]
             a.sprit_kg = c["fuel_in_tank"]
-            a.flagge = c["vehicle_fia_flags"]
+            alte_flagge, a.flagge = a.flagge, c["vehicle_fia_flags"]
+            if i == z.spieler_idx and a.flagge == 3 and alte_flagge != 3:
+                self._melde("gelbe_flagge_eigene")  # die Flagge, die DU gerade zeigst
             a.ers_energie = c["ers_store_energy"]
             a.ers_modus = c["ers_deploy_mode"]
             if vis == 0 or not a.gueltig:
@@ -338,8 +403,16 @@ class Auswertung:
                 info["s1_ms"], info["s2_ms"], info["s3_ms"] = (
                     lap["sector1_ms"], lap["sector2_ms"], lap["sector3_ms"],
                 )
-        if a.rundenzeiten:
-            a.beste_runde_ms = min(a.rundenzeiten.values())
+        # Beste Runde = beste GUELTIGE Runde (ungueltige zaehlen weder im Qualifying
+        # noch fuer die schnellste Rennrunde). Das Spiel nennt die Rundennummer.
+        gueltig = [lap["lap_time_ms"] for lap in p["laps"] if lap["lap_time_ms"] > 0 and lap["valid"]]
+        a.beste_runde_nr = p["best_lap_time_lap_num"]
+        if a.beste_runde_nr in a.rundenzeiten:
+            a.beste_runde_ms = a.rundenzeiten[a.beste_runde_nr]
+        elif gueltig:
+            a.beste_runde_ms = min(gueltig)
+        elif p["laps"]:
+            a.beste_runde_ms = 0
         stints_roh = p["tyre_stints"]
         if not stints_roh:
             return
@@ -370,6 +443,9 @@ class Auswertung:
                     a.stints, False, max(c["num_laps"], 1))
             if c["best_lap_time_ms"]:
                 a.beste_runde_ms = c["best_lap_time_ms"]
+            if c["result_status"] == 4 and not a.ausgefallen_runde and z.ist_rennen:
+                a.runde = max(a.runde, c["num_laps"] + 1)
+                self._ausfall(i, c["result_reason"])
             ergebnis.append({"idx": i, **c})
         z.klassifizierung = sorted(ergebnis, key=lambda e: e["position"])
         z.beendet = True
@@ -393,6 +469,7 @@ class Auswertung:
                 z.beendet = True
                 self._melde("session_ende")
         elif code == "RDFL":
+            self._momentaufnahme("rote_flagge", "Rote Flagge")
             z.rote_flagge = True
             z.rote_flaggen_anzahl += 1
             self._rote_flagge_zeit = z.session_time
@@ -412,8 +489,11 @@ class Auswertung:
             if z.rote_flagge:
                 z.rote_flagge = False
                 self._protokoll("RESTART", "Restart nach roter Flagge")
+                self._momentaufnahme("restart", "Restart nach roter Flagge")
                 self._melde("restart")
             else:
+                if z.ist_rennen and not z.rennen_gestartet:
+                    self._momentaufnahme("start", "Start")
                 self._melde("start")
             z.rennen_gestartet = True
         elif code == "CHQF":
@@ -425,12 +505,12 @@ class Auswertung:
             self._melde("schnellste_runde", idx=d["vehicle_idx"],
                         zeit_ms=int(d["lap_time"] * 1000))
         elif code == "RTMT":
-            self._protokoll("AUSFALL", f"{name(d['vehicle_idx'])} ist ausgefallen",
-                            d["vehicle_idx"])
-            self._melde("ausfall", idx=d["vehicle_idx"])
+            self._ausfall(d["vehicle_idx"], d.get("reason", 0))
         elif code == "PENA":
-            self._protokoll("STRAFE", f"Strafe für {name(d['vehicle_idx'])}",
-                            d["vehicle_idx"])
+            art = k.STRAFARTEN.get(d["penalty_type"], "Strafe")
+            vergehen = k.VERGEHEN.get(d["infringement_type"])
+            self._protokoll("STRAFE", f"{art} für {name(d['vehicle_idx'])}"
+                            + (f": {vergehen}" if vergehen else ""), d["vehicle_idx"])
             self._melde("strafe", idx=d["vehicle_idx"], sekunden=d["time"],
                         strafe_typ=d["penalty_type"], vergehen=d["infringement_type"])
         elif code == "SCAR":
@@ -442,6 +522,28 @@ class Auswertung:
         elif code == "COLL":
             self._melde("kollision", idx1=d["vehicle1_idx"], idx2=d["vehicle2_idx"])
 
+    def _ausfall(self, idx: int, grund: int) -> None:
+        """Ein Fahrer ist ausgeschieden: Runde und Grund festhalten (nur im Rennen)."""
+        z = self.z
+        if idx >= len(z.autos) or not z.ist_rennen:
+            return
+        if grund != 0 and grund not in k.AUSFALL_ECHT:
+            return  # "im Ziel", "rote Flagge", ... sind kein Ausfall
+        a = z.autos[idx]
+        if a.ausgefallen_runde:
+            return
+        a.ausgefallen_runde = max(a.runde, 1)
+        a.ausfall_grund = grund
+        a.ausfall_zeit = z.session_time
+        grund_text = k.AUSFALL_GRUND.get(grund, "unbekannt")
+        z.ausfaelle.append({
+            "idx": idx, "name": a.anzeigename, "team": a.team, "runde": a.ausgefallen_runde,
+            "zeit": round(z.session_time, 1), "code": grund, "grund": grund_text,
+            "position": a.position,
+        })
+        self._protokoll("AUSFALL", f"{a.anzeigename} ausgeschieden: {grund_text}", idx)
+        self._melde("ausfall", idx=idx, grund=grund, runde=a.ausgefallen_runde)
+
     def _nach_flashback(self, t: float) -> None:
         """Rueckblende: alles verwerfen, was nach dem Zielzeitpunkt lag."""
         z = self.z
@@ -449,6 +551,10 @@ class Auswertung:
             a.boxenstopps = [s for s in a.boxenstopps if s.session_time <= t]
         z.wetter_log = [w for w in z.wetter_log if w["zeit"] <= t] or z.wetter_log[:1]
         z.ereignis_log = [e for e in z.ereignis_log if e["zeit"] <= t]
+        z.momentaufnahmen = [m for m in z.momentaufnahmen if m["zeit"] <= t]
+        for eintrag in [e for e in z.ausfaelle if e["zeit"] > t]:
+            z.ausfaelle.remove(eintrag)
+            z.autos[eintrag["idx"]].ausgefallen_runde = 0
         z.session_time = t
         self._melde("flashback", ziel=t)
 

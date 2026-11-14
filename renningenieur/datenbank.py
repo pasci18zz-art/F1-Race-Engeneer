@@ -9,12 +9,13 @@ Geschrieben wird in einem eigenen Thread, damit der UDP-Empfang nie auf
 die Festplatte warten muss.
 
 Tabellen: saisons, sessions, teilnehmer, stints, boxenstopps, wetter,
-runden, ereignisse. Die Datei laesst sich mit jedem SQLite-Programm oeffnen
+runden, ereignisse, momentaufnahmen. Die Datei laesst sich mit jedem SQLite-Programm oeffnen
 (z. B. "DB Browser for SQLite").
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import queue
 import sqlite3
@@ -23,6 +24,7 @@ from datetime import datetime
 
 from .auswertung import Ereignis
 from .schnappschuss import schnappschuss
+from .telemetrie import konstanten as k
 from .zustand import Rennzustand
 
 log = logging.getLogger(__name__)
@@ -97,8 +99,36 @@ CREATE TABLE IF NOT EXISTS ereignisse (
     zeit REAL, runde INTEGER, code TEXT, idx INTEGER, text TEXT,
     PRIMARY KEY (session_id, nr)
 );
+CREATE TABLE IF NOT EXISTS momentaufnahmen (
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    nr INTEGER NOT NULL,
+    zeit REAL, runde INTEGER, grund TEXT, text TEXT,
+    daten TEXT,  -- Reihenfolge als JSON
+    PRIMARY KEY (session_id, nr)
+);
 CREATE INDEX IF NOT EXISTS sessions_saison ON sessions(saison_id, begonnen);
 """
+
+
+# Spalten, die spaeter dazukamen. Eine aeltere Datenbank-Datei bekommt sie beim Start.
+NEUE_SPALTEN = {
+    "teilnehmer": [
+        ("beste_runde_nr", "INTEGER"),
+        ("ausfall_runde", "INTEGER"),
+        ("ausfall_code", "INTEGER"),
+        ("ausfall_grund", "TEXT"),
+        ("ausfall_zeit", "REAL"),
+        ("ausfall_position", "INTEGER"),
+    ],
+}
+
+
+def _migrieren(con: sqlite3.Connection) -> None:
+    for tabelle, spalten in NEUE_SPALTEN.items():
+        vorhanden = {z["name"] for z in con.execute(f"PRAGMA table_info({tabelle})")}
+        for name, typ in spalten:
+            if name not in vorhanden:
+                con.execute(f"ALTER TABLE {tabelle} ADD COLUMN {name} {typ}")
 
 
 def _verbinden(pfad: str) -> sqlite3.Connection:
@@ -115,6 +145,7 @@ class Datenbank:
         try:
             con.execute("PRAGMA journal_mode = WAL")
             con.executescript(SCHEMA)
+            _migrieren(con)
             con.commit()
         finally:
             con.close()
@@ -147,7 +178,7 @@ class Datenbank:
         """Entscheidet, wann gespeichert wird."""
         if e.typ == "session_start":
             self._letzte_runde = -1
-        speichern = e.typ in ("klassifizierung", "session_ende", "rote_flagge", "restart")
+        speichern = e.typ in ("klassifizierung", "session_ende", "rote_flagge", "restart", "ausfall")
         if e.typ == "runde":
             runde = z.fuehrungsrunde()
             if runde != self._letzte_runde:
@@ -198,17 +229,26 @@ class Datenbank:
                      s["rote_flaggen_anzahl"], s["packet_format"], sid),
                 )
                 for tabelle in ("teilnehmer", "stints", "boxenstopps", "wetter", "runden",
-                                "ereignisse"):
+                                "ereignisse", "momentaufnahmen"):
                     con.execute(f"DELETE FROM {tabelle} WHERE session_id = ?", (sid,))
+                ausfall_platz = {e["idx"]: e["position"] for e in d.get("ausfaelle", [])}
                 for a in d["autos"]:
                     con.execute(
-                        "INSERT INTO teilnehmer VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        """INSERT INTO teilnehmer (session_id, idx, name, team_id, team, farbe,
+                           startnummer, ki, ist_spieler, startplatz, position, result_status,
+                           status, punkte, runden_gefahren, beste_runde_ms, gesamtzeit_s,
+                           strafen_s, boxenstopps_anzahl, rueckstand_ms, beste_runde_nr,
+                           ausfall_runde, ausfall_code, ausfall_grund, ausfall_zeit, ausfall_position)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (sid, a["idx"], a["name"], a["team_id"], a["team"], a["farbe"],
                          a["startnummer"], int(a["ki"]), int(a["ist_spieler"]), a["startplatz"],
                          a["position"], a["result_status"], a["status"], a.get("punkte"),
                          a.get("runden_gefahren", len(a.get("runden", []))),
                          a["beste_runde_ms"], a.get("gesamtzeit_s"), a["strafen_s"],
-                         a["boxenstopps_anzahl"], a["rueckstand_ms"]),
+                         a["boxenstopps_anzahl"], a["rueckstand_ms"], a.get("beste_runde_nr"),
+                         a.get("ausgefallen_runde") or None, a.get("ausfall_code"),
+                         a.get("ausfall_grund") or None, a.get("ausfall_zeit"),
+                         ausfall_platz.get(a["idx"])),
                     )
                     con.executemany(
                         "INSERT INTO stints VALUES (?,?,?,?,?,?,?,?,?,?,?)",
@@ -235,6 +275,12 @@ class Datenbank:
                     [(sid, n, w["zeit"], w["runde"], w["wetter"], w["wetter_name"],
                       w["streckentemperatur"], w["lufttemperatur"])
                      for n, w in enumerate(d["wetter_log"], 1)],
+                )
+                con.executemany(
+                    "INSERT INTO momentaufnahmen VALUES (?,?,?,?,?,?,?)",
+                    [(sid, n, m["zeit"], m["runde"], m["grund"], m["text"],
+                      json.dumps(m["reihenfolge"], ensure_ascii=False))
+                     for n, m in enumerate(d.get("momentaufnahmen", []), 1)],
                 )
                 con.executemany(
                     "INSERT INTO ereignisse VALUES (?,?,?,?,?,?,?)",
@@ -275,6 +321,7 @@ class Datenbank:
                     "SELECT wetter FROM wetter WHERE session_id = ? ORDER BY nr", (d["id"],))]
                 d["wetter_folge"] = wetter
                 d["nass"] = any(w >= 3 for w in wetter)
+                d["ist_quali"] = k.ist_quali(d["session_typ"] or 0)
                 liste.append(d)
             return liste
         finally:
@@ -311,12 +358,34 @@ class Datenbank:
             session["runde"] = session["runden_gefahren"]
             session["ist_rennen"] = bool(session["ist_rennen"])
             session["beendet"] = bool(session["beendet"])
+            typ = session["session_typ"] or 0
+            session["ist_quali"] = k.ist_quali(typ)
+            session["quali_teil"] = k.quali_teil(typ)
+            session["ausscheidung"] = (k.ausscheidungslinie(typ, len(autos))
+                                       if session["ist_quali"] else None)
+            ausfaelle = []
+            for a in autos:
+                if a.get("ausfall_runde"):
+                    a["ausgefallen_runde"] = a["ausfall_runde"]
+                    ausfaelle.append({
+                        "idx": a["idx"], "name": a["name"], "team": a["team"],
+                        "runde": a["ausfall_runde"], "zeit": a["ausfall_zeit"],
+                        "code": a["ausfall_code"], "grund": a["ausfall_grund"],
+                        "position": a["ausfall_position"] or a["position"],
+                    })
+            ausfaelle.sort(key=lambda e: (e["zeit"] or 0))
+            momentaufnahmen = []
+            for m in alle("momentaufnahmen", "nr"):
+                m["reihenfolge"] = json.loads(m.pop("daten") or "[]")
+                momentaufnahmen.append(m)
             return {
                 "aktiv": True,
                 "gespeichert": True,
                 "session": session,
                 "wetter_log": alle("wetter", "nr"),
                 "ereignisse": alle("ereignisse", "nr"),
+                "ausfaelle": ausfaelle,
+                "momentaufnahmen": momentaufnahmen,
                 "autos": autos,
             }
         finally:

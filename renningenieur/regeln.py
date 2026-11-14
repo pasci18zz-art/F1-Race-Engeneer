@@ -46,6 +46,7 @@ class Regeln:
         self._rennstart_gemeldet = False
         self._letzte_runde_gemeldet = False
         self._ziel_gemeldet = False
+        self._letzte_gelb = -1e9
 
     # ------------------------------------------------------------------
     def ereignis(self, e: Ereignis) -> None:
@@ -64,6 +65,7 @@ class Regeln:
 
     def _bei_flashback(self, e: Ereignis) -> None:
         # Nach einer Rueckblende alles neu bewerten
+        self._letzte_gelb = -1e9
         self._geplant.clear()
         self._box_gemeldet.clear()
         self._hinten_scharf = True
@@ -415,6 +417,45 @@ class Regeln:
             if schwellen and regen[0] <= max(schwellen):
                 self._regen_gemeldet = None
                 self._regen_ansagen(*regen)
+
+    # --- Ausfaelle ----------------------------------------------------
+    def _bei_ausfall(self, e: Ereignis) -> None:
+        z = self.z
+        if not self.cfg.get("ausfaelle", True) or not z.ist_rennen:
+            return
+        idx, grund, runde = e.daten["idx"], e.daten["grund"], e.daten["runde"]
+        a = z.autos[idx]
+        schluessel = k.AUSFALL_TEXT_SCHLUESSEL.get(grund)
+        grund_text = self.t.sag(f"ausfall_grund.{schluessel}") if schluessel else ""
+        werte = dict(name=a.anzeigename, runde=runde, platz=a.position, grund=grund_text)
+        if idx == z.spieler_idx:
+            text = "ausfall_du" if grund_text else "ausfall_du_ohne_grund"
+        else:
+            text = "ausfall" if grund_text else "ausfall_ohne_grund"
+        self._sag("warnung." + text, NORMAL, **werte)
+
+    # --- Gelbe Flagge -------------------------------------------------
+    def _gelb_melden(self, schluessel: str, **werte) -> None:
+        z = self.z
+        if not self.cfg.get("gelbe_flagge", True) or z.session_typ in k.TRAINING_SESSIONS + (0, 18):
+            return
+        ich = z.spieler
+        if ich is None or ich.in_box or z.rote_flagge or z.safety_car != k.SC_KEINS:
+            return  # unter Safety Car und in der Box ist Gelb nichts Besonderes
+        if z.session_time - self._letzte_gelb < 15:
+            return  # nicht dauernd dieselbe Meldung
+        self._letzte_gelb = z.session_time
+        self._sag("warnung." + schluessel, HOCH, **werte)
+
+    def _bei_gelbe_flagge(self, e: Ereignis) -> None:
+        voraus = e.daten.get("voraus")
+        if voraus is None or voraus > self.cfg.get("gelb_vorausschau", 0.35):
+            return  # liegt hinter dir oder zu weit weg
+        sektor = e.daten.get("sektor", 0)
+        self._gelb_melden("gelbe_flagge" if sektor else "gelbe_flagge_ohne_sektor", sektor=sektor)
+
+    def _bei_gelbe_flagge_eigene(self, e: Ereignis) -> None:
+        self._gelb_melden("gelbe_flagge_eigene")
 
     # --- Strafen ------------------------------------------------------
     def _bei_strafe(self, e: Ereignis) -> None:

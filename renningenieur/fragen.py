@@ -762,10 +762,18 @@ class Fragen:
 
     # --- 6: Ausfaelle -------------------------------------------------
     def _antwort_ausfall(self, text, woerter, ich, bezug, auto) -> str:
-        raus = [a.anzeigename for a in self.z.gueltige_autos() if a.result_status in (4, 5, 6, 7)]
-        if not raus:
+        z = self.z
+        erfasst = {e["idx"]: e for e in z.ausfaelle}
+        teile = []
+        for a in z.gueltige_autos():
+            if a.result_status not in (4, 5, 6, 7) and a.idx not in erfasst:
+                continue
+            e = erfasst.get(a.idx)
+            teile.append(f"{a.anzeigename} in Runde {e['runde']} ({e['grund']})" if e
+                         else a.anzeigename)
+        if not teile:
             return self.t.sag("antwort.niemand_ausgefallen")
-        return self.t.sag("antwort.ausgefallen", namen=", ".join(raus), anzahl=len(raus))
+        return self.t.sag("antwort.ausgefallen", namen=", ".join(teile), anzahl=len(teile))
 
     # --- 9: frischeste Reifen um mich herum ---------------------------
     def _antwort_frisch(self, text, woerter, ich, bezug, auto) -> str:

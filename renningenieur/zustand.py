@@ -105,6 +105,12 @@ class Auto:
     beste_runde_ms: int = 0
     # Runden mit Safety Car, VSC oder roter Flagge (zaehlen nicht fuer Tempo-Vergleiche)
     neutral_runden: set[int] = field(default_factory=set)
+    # --- Ausfall und Qualifying ---
+    ausgefallen_runde: int = 0  # 0 = nicht ausgefallen
+    ausfall_grund: int = 0
+    ausfall_zeit: float = 0.0
+    aktuelle_runde_ms: int = 0
+    beste_runde_nr: int = 0
 
     # ------------------------------------------------------------------
     @property
@@ -196,12 +202,41 @@ class Rennzustand:
         self.wetter_log: list[dict] = []
         self.ereignis_log: list[dict] = []
         self.klassifizierung: list[dict] | None = None
+        self.ausfaelle: list[dict] = []  # wer in welcher Runde warum ausgeschieden ist
+        self.momentaufnahmen: list[dict] = []  # Reihenfolge bei Start, SC, roter Flagge, ...
+        self.marshal_zonen: list[dict] = []
+        self.gelb_zonen: set[int] = set()
+        self.sektor2_start = 0.0
+        self.sektor3_start = 0.0
         self.reifensaetze: list[dict] = []
 
     # ------------------------------------------------------------------
     @property
     def ist_rennen(self) -> bool:
         return k.ist_rennen(self.session_typ)
+
+    @property
+    def ist_quali(self) -> bool:
+        return k.ist_quali(self.session_typ)
+
+    def sektor_der_zone(self, zone: int) -> int:
+        """In welchem Sektor (1-3) eine Marschallzone beginnt, 0 = unbekannt."""
+        if not (self.streckenlaenge and self.sektor2_start and self.sektor3_start):
+            return 0
+        if not 0 <= zone < len(self.marshal_zonen):
+            return 0
+        meter = self.marshal_zonen[zone]["zone_start"] * self.streckenlaenge
+        return 1 if meter < self.sektor2_start else 2 if meter < self.sektor3_start else 3
+
+    def gelb_sektoren(self) -> list[int]:
+        return sorted({self.sektor_der_zone(i) for i in self.gelb_zonen})
+
+    def zone_voraus(self, zone: int, auto: "Auto") -> float | None:
+        """Wie weit (Anteil einer Runde, 0..1) die Zone vor dem Auto liegt."""
+        if not (self.streckenlaenge and 0 <= zone < len(self.marshal_zonen)):
+            return None
+        anteil = (auto.rundendistanz / self.streckenlaenge) % 1.0
+        return (self.marshal_zonen[zone]["zone_start"] - anteil) % 1.0
 
     @property
     def spieler(self) -> Auto | None:

@@ -89,7 +89,8 @@ dein Mitspieler heißt „Kumpel“.
 
 | Befehl | Was passiert |
 |---|---|
-| `start.bat simulation alles` | Stopps, Strafe, Safety Car, rote Flagge mit Restart, Regen (Standard) |
+| `start.bat simulation alles` | Stopps, Strafe, Ausfall mit Grund, gelbe Flagge, Safety Car, rote Flagge mit Restart, Regen (Standard) |
+| `start.bat simulation qualifying` | Qualifying (Q1) mit ungültigen Runden und gelber Flagge |
 | `start.bat simulation trocken` | trockenes Rennen, Reifenverschleiß bis über 40 % |
 | `start.bat simulation regen` | Regen kündigt sich an und kommt |
 | `start.bat simulation rote_flagge` | rote Flagge mit Restart |
@@ -199,6 +200,8 @@ Alle Schwellen stehen in `config.toml` unter `[warnungen]`, alle Sätze in
 | Hintermann näher als X Sekunden | `abstand_hinten`, `…_entwarnung`, `…_pause`, `…_ab_runde` |
 | Safety Car, virtuelles Safety Car | `safety_car` |
 | Rote Flagge und Restart | `rote_flagge` |
+| Ausfall eines Fahrers mit Runde und Grund („Verstappen ist wegen eines mechanischen Problems ausgeschieden“) | `ausfaelle` |
+| Gelbe Flagge mit Sektor | `gelbe_flagge`, `gelb_vorausschau` |
 | Strafen (eigene und die der direkten Gegner) | `strafen` |
 
 Es gibt keine Füllsätze. Nach einer roten Flagge kommt ein Lagebericht aus
@@ -245,6 +248,7 @@ Jedes Modul hat eine Aufgabe und lässt sich einzeln austauschen.
 | `telemetrie/spec.py` | Paketformat 2025/2026 als Tabellen, Paketgrößen laut Spec |
 | `telemetrie/parser.py` | Bytes → Dictionary |
 | `telemetrie/encoder.py` | Dictionary → Bytes (für Simulator und Tests) |
+| `bericht.py` | Session-Bericht als Text und JSON, Export-Ordner (Format: `BERICHT_FORMAT.md`) |
 | `telemetrie/relay.py` | UDP-Empfang und Weiterleitung |
 | `telemetrie/aufnahme.py` | Telemetrie mitschneiden und abspielen |
 | `telemetrie/konstanten.py` | Wetter, Reifen, Teams, Strecken |
@@ -278,7 +282,7 @@ der Python-Standardbibliothek aus.
 python -m unittest discover -s tests -t .
 ```
 
-185 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
+Tests (alle in `tests/`): Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
 UDP-Sockets, jede Regel mit ihren Schwellen, die Fragen, komplette simulierte
 Rennen von Paket bis Datenbank, Rückblenden, Webserver.
 
