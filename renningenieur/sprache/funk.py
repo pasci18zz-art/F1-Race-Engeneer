@@ -36,6 +36,7 @@ class Funk:
         self.max_wartezeit = max_wartezeit
         self.protokoll: list[str] = []  # die letzten Meldungen (fuer die Webseite)
         self.stumm = False  # z. B. waehrend der Fahrer selbst spricht
+        self.stumm_bis = 0.0  # Zeitpunkt (monotonic): stumm bis dahin, faellt von selbst ab
         self._queue: queue.PriorityQueue = queue.PriorityQueue()
         self._zaehler = itertools.count()
         self._stop = threading.Event()
@@ -51,6 +52,10 @@ class Funk:
         if self._thread:
             self._thread.join(timeout=3)
         self.stimme.schliessen()
+
+    def stumm_fuer(self, sekunden: float) -> None:
+        """Der Ingenieur schweigt die naechsten `sekunden` (0 = sofort wieder reden)."""
+        self.stumm_bis = time.monotonic() + sekunden if sekunden > 0 else 0.0
 
     def sagen(self, text: str, prioritaet: int = NORMAL, haltbar: float | None = None) -> None:
         """Reiht eine Meldung ein. Leerer Text wird ignoriert."""
@@ -72,7 +77,7 @@ class Funk:
             _, _, verfall, text = self._queue.get()
             if text is None:
                 break
-            while self.stumm and not self._stop.is_set():
+            while (self.stumm or time.monotonic() < self.stumm_bis) and not self._stop.is_set():
                 time.sleep(0.05)
             if time.monotonic() > verfall:
                 log.debug("Meldung verfallen: %s", text)

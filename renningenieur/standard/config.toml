@@ -35,6 +35,11 @@ ausgabegeraet = ""
 max_wartezeit = 20
 
 [mikrofon]
+# Woher kommen die Fragen?
+# "tablet" = Taste auf der Tablet-Seite (Mikrofon des Tablets)
+# "pc"     = Mikrofon am PC mit Funktaste am Lenkrad oder an der Tastatur
+# "beides" = beides
+quelle = "beides"
 # Teil des Gerätenamens (z. B. "APEXEL" oder "USB") oder die Nummer aus
 # "python -m renningenieur geraete". Leer = Windows-Standardmikrofon.
 geraet = ""
@@ -154,12 +159,29 @@ kumpel = ""
 "Colapinto" = ["colapinto", "franco"]
 "Doohan" = ["doohan", "jack"]
 
+[tablet]
+# Fragen per Taste auf der Tablet-Seite (Mikrofon des Tablets)
+mikrofon = true
+# Die Aufnahme endet, wenn du so viele Sekunden nichts mehr sagst ...
+stille_sekunden = 2.0
+# ... oder spätestens nach so vielen Sekunden
+max_sekunden = 8
+# Wird hier etwas größer als 0 eingetragen, nimmt die Taste immer genau so
+# viele Sekunden auf, ohne auf Stille zu achten (z. B. 5).
+feste_sekunden = 0
+# Hört die Taste in den ersten Sekunden gar nichts, bricht sie nach so
+# vielen Sekunden ab.
+warten_sekunden = 5
+
 [datenbank]
 aktiv = true
 datei = "renningenieur.sqlite"
 
 [web]
 aktiv = true
-# Die Seite ist dann unter http://<IP-des-PCs>:8025 erreichbar.
+# Zweite, verschlüsselte Adresse (HTTPS). Nur darüber gibt Chrome am Tablet
+# das Mikrofon frei: https://<IP-des-PCs>:8026
+https_port = 8026
+# Die normale Seite ist unter http://<IP-des-PCs>:8025 erreichbar.
 port = 8025
 host = "0.0.0.0"

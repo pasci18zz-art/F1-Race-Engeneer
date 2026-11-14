@@ -9,3 +9,7 @@ __pycache__/
 *.sqlite-shm
 /modelle/
 *.f1udp
+# Zertifikate (enthalten den privaten Schluessel der lokalen CA) und Aufnahmen bleiben lokal
+/zertifikat/
+letzte_aufnahme.wav
+mikrofontest.wav

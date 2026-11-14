@@ -51,6 +51,8 @@ def befehl_start(args) -> int:
         cfg["udp"]["port"] = args.port
     if args.stumm:
         cfg["sprachausgabe"]["engine"] = "konsole"
+    if args.ohne_mikrofon:
+        cfg["mikrofon"]["quelle"] = "tablet"  # kein PC-Mikrofon, die Tablet-Taste bleibt
 
     datenbank = None
     if cfg["datenbank"].get("aktiv", True):
@@ -74,7 +76,9 @@ def befehl_start(args) -> int:
     try:
         relay.start()
         if cfg["web"].get("aktiv", True):
-            web = Webserver(kern, cfg["web"].get("host", "0.0.0.0"), cfg["web"]["port"])
+            web = Webserver(kern, cfg["web"].get("host", "0.0.0.0"), cfg["web"]["port"],
+                            sprechfunk=sprechfunk, https_port=cfg["web"].get("https_port", 0),
+                            zertifikat_ordner=ordner / "zertifikat", tablet=cfg.get("tablet", {}))
             web.start()
     except RuntimeError as e:
         log.error("%s", e)
@@ -82,8 +86,7 @@ def befehl_start(args) -> int:
         return 1
     for host, port in relay.ziele:
         log.info("SimHub muss dafür auf Port %s hören (F1 25, Game config, UDP-Port).", port)
-    if not args.ohne_mikrofon:
-        sprechfunk.start()
+    sprechfunk.start()
 
     log.info("Bereit. Fragen kannst du auch hier eintippen. Beenden mit Strg+C.")
     threading.Thread(target=_tastatur_fragen, args=(kern,), daemon=True).start()
@@ -296,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
     for parser in (p, s):
         parser.add_argument("--port", type=int, default=0, help="UDP-Port (statt config.toml)")
         parser.add_argument("--stumm", action="store_true", help="nur Text, keine Sprachausgabe")
-        parser.add_argument("--ohne-mikrofon", action="store_true", help="keine Spracheingabe")
+        parser.add_argument("--ohne-mikrofon", action="store_true", help="PC-Mikrofon nicht öffnen")
         parser.add_argument("--aufnahme", metavar="DATEI", help="Telemetrie in Datei mitschneiden")
 
     s = sub.add_parser("simulation", help="simuliertes Rennen per UDP senden")

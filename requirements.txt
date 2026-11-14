@@ -1,5 +1,6 @@
 # Nur fuer Spracheingabe und Lenkradtaste noetig. Empfang, Warnungen,
 # Windows-Sprachausgabe, Datenbank und Tablet-Seite brauchen keine Pakete.
+cryptography>=42      # verschlüsselte Adresse für das Tablet-Mikrofon
 numpy>=1.26         # Aufbereitung der Mikrofonaufnahme
 vosk>=0.3.45          # Spracherkennung (offline)
 sounddevice>=0.4.6    # Mikrofonaufnahme

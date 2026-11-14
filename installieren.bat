@@ -15,6 +15,8 @@ echo.
 echo Installiere Spracherkennung, Mikrofon- und Lenkrad-Anbindung ...
 %PY% -m pip install numpy
 if errorlevel 1 echo WARNUNG: numpy konnte nicht installiert werden - Mikrofon-Aufbereitung fehlt dann.
+%PY% -m pip install cryptography
+if errorlevel 1 echo WARNUNG: cryptography konnte nicht installiert werden - Tablet-Mikrofon fehlt dann.
 %PY% -m pip install vosk
 if errorlevel 1 echo WARNUNG: vosk konnte nicht installiert werden - Spracheingabe fehlt dann.
 %PY% -m pip install sounddevice

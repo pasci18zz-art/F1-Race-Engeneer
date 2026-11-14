@@ -20,6 +20,7 @@
   </nav>
 </header>
 
+<div id="mikro-banner" class="mikro-banner" hidden></div>
 <main>
   <!-- ================= LIVE ================= -->
   <section id="live" class="ansicht aktiv">
@@ -116,7 +117,24 @@
   </section>
 </main>
 
+<div id="mikro-panel" class="mikro-panel" aria-live="polite" hidden>
+  <div id="mikro-status" class="mikro-status"></div>
+  <div class="mikro-pegel-spur"><div id="mikro-pegel" class="mikro-pegel"></div></div>
+  <div id="mikro-frage" class="mikro-zeile"></div>
+  <div id="mikro-antwort" class="mikro-zeile antwort"></div>
+  <div id="mikro-hinweis" class="mikro-zeile hinweis" hidden></div>
+</div>
+<button id="mikro" class="mikro" data-zustand="bereit" aria-label="Frage stellen" type="button">
+  <svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" fill="none" stroke="currentColor"
+       stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/>
+    <path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/>
+  </svg>
+  <span class="mikro-text">Fragen</span>
+</button>
+
 <div id="tipp" class="tipp" hidden></div>
 <script src="app.js"></script>
+<script src="mikro.js"></script>
 </body>
 </html>

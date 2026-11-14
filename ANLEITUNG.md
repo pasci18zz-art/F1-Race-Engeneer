@@ -48,6 +48,7 @@ In diesem Ordner liegen ab jetzt alle Dateien, von denen unten die Rede ist:
 | `stimmen.bat` | natürlichere Stimme auswählen (siehe K0) |
 | `mikrofontest.bat` | Mikrofon und Spracherkennung ausprobieren (siehe N) |
 | `whisper.bat` | genauere Spracherkennung installieren (siehe N) |
+| rote Taste auf der Tablet-Seite | Fragen über das Tablet (siehe O) |
 | `pruefen.bat` | prüft, ob die Daten des Spiels richtig ankommen |
 | `config.toml` | deine Einstellungen (entsteht beim ersten Start) |
 | `texte.toml` | alle Sprüche (entsteht beim ersten Start) |
@@ -374,6 +375,73 @@ auf deinem PC dauert, und stellt `config.toml` um. Danach mit
   Aufnahme liegt als `letzte_aufnahme.wav` im Programmordner.
 - Bei Vosk hilft eventuell `wortliste = true` bei `[spracherkennung]`: Dann hört
   Vosk nur auf Wörter, die das Programm kennt.
+
+## O. Fragen über das Tablet (rote Taste)
+
+Das Tablet nimmt deine Frage auf und schickt den Ton an den PC. Dort läuft
+die Erkennung weiter lokal, und die Antwort kommt in deinen Kopfhörern und
+steht auf dem Tablet. Du brauchst kein Mikrofon am PC.
+
+**Einmal einrichten**
+1. Neue Version einspielen und **`installieren.bat`** noch einmal ausführen
+   (es installiert jetzt `cryptography` dazu).
+2. In `config.toml` bei `[mikrofon]` die Zeile `quelle = "tablet"` einfügen.
+   Dann wird das Mikrofon der Buds nicht mehr geöffnet. Die Lenkradtaste
+   löst dann nichts aus, gefragt wird nur noch am Tablet. Mit
+   `quelle = "beides"` bleiben beide Wege.
+3. `start.bat` starten. Im Fenster stehen jetzt **zwei** Adressen:
+   - `Tablet-Seite: http://192.168.…:8025` (ohne Mikrofon)
+   - `Tablet-Seite mit Mikrofon: https://192.168.…:8026` (**diese nimmst du**)
+4. Am Tablet in Chrome die **https**-Adresse öffnen. Chrome zeigt eine Warnung
+   „Verbindung nicht privat“. Das ist normal, weil das Zertifikat vom PC
+   selbst stammt. Tipp auf **Erweitert**, dann auf **Weiter zu … (unsicher)**.
+5. Unten rechts ist die **große rote Taste „Fragen“**. Beim ersten Tippen
+   fragt Chrome, ob die Seite das Mikrofon benutzen darf: **Zulassen**.
+
+**Fragen stellen**
+1. Rote Taste tippen. Sie wird **grün** und pulsiert: „Ich höre zu …“.
+2. Frage sprechen, zum Beispiel „Abstand nach hinten“.
+3. Die Aufnahme endet von selbst, wenn du **2 Sekunden** nichts mehr sagst.
+   Willst du früher fertig sein, tippst du die Taste noch einmal.
+4. Die Taste wird kurz gelb („Ich verstehe …“). Dann steht auf dem Tablet, was
+   verstanden wurde und was geantwortet wird. Die Antwort kommt zusätzlich in
+   die Kopfhörer.
+5. Solange du sprichst, schweigt der Ingenieur.
+
+Bleibt die Seite aufgerufen, ist das Mikrofon nach einer Frage noch 45
+Sekunden offen. Die nächste Frage startet dann ohne Wartezeit.
+
+**Einstellungen** (`config.toml`, Abschnitt `[tablet]`)
+- `stille_sekunden = 2.0`: so lange Stille beendet die Aufnahme. Wenn dir 2
+  Sekunden zu kurz sind, trag 3 ein.
+- `feste_sekunden = 5`: nimmt immer genau 5 Sekunden auf, ohne auf Stille zu
+  achten. `0` heißt: auf Stille achten.
+- `max_sekunden = 8`: längste Aufnahme.
+
+**Die Warnung loswerden (optional)**
+Wenn dich die Warnung bei jedem Öffnen stört, installierst du das Zertifikat
+einmal am Tablet. Das Zertifikat ist technisch auf Adressen im Heimnetz
+beschränkt und gilt für keine echten Webseiten.
+1. Am Tablet `http://192.168.….:8025/ca.crt` öffnen (steht auch im gelben
+   Hinweis auf der Seite). Die Datei wird geladen.
+2. In den Android-Einstellungen nach **„Zertifikat installieren“** suchen,
+   **CA-Zertifikat** wählen, die Warnung bestätigen und die geladene Datei
+   auswählen. Dafür muss am Tablet eine Bildschirmsperre eingerichtet sein.
+   Die Menünamen unterscheiden sich je nach Hersteller.
+3. Chrome schließen und die https-Adresse neu öffnen.
+
+**Wenn es nicht geht**
+| Was du siehst | Was zu tun ist |
+|---|---|
+| Gelber Hinweis „Für das Mikrofon brauchst du die verschlüsselte Adresse“ | Die https-Adresse öffnen (Schritt 4) |
+| „Mikrofon nicht freigegeben“ | In Chrome auf das Symbol links neben der Adresse tippen und das Mikrofon erlauben. In den Android-Einstellungen muss Chrome ebenfalls Zugriff auf das Mikrofon haben |
+| „Die Spracheingabe ist am PC nicht bereit“ | Im Fenster von `start.bat` nachsehen, was fehlt (Vosk oder Whisper, siehe N) |
+| „Ich habe nichts gehört“ | Gleich nach dem Tippen sprechen, näher ans Tablet. Der angezeigte Pegel zeigt, wie laut das Tablet dich hört |
+| Seite lädt nicht | Beide Geräte im gleichen WLAN? Firewall-Frage bei `start.bat` mit „Privates Netzwerk“ bestätigt? |
+| Im Fenster „Tablet-Mikrofon aus: cryptography fehlt“ | `installieren.bat` ausführen |
+
+Der Bildschirm des Tablets muss an bleiben und die Seite im Vordergrund
+sein. Sonst stoppt Android das Mikrofon.
 
 ## Wenn etwas nicht klappt
 
