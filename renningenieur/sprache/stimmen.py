@@ -5,9 +5,11 @@
   KonsolenStimme - schreibt den Text nur ins Fenster (Test, Linux/Mac).
   StummeStimme   - merkt sich die Texte nur (fuer automatische Tests).
 
-Eine andere lokale TTS (z. B. Piper) laesst sich ergaenzen, indem man hier
-eine weitere Klasse mit denselben zwei Methoden schreibt und sie in
-stimme_erzeugen() eintraegt.
+  PiperStimme    - natuerliche neuronale Stimme, ebenfalls lokal
+                   (siehe piper_stimme.py, Einrichtung mit stimmen.bat).
+
+Eine weitere Sprachausgabe laesst sich ergaenzen, indem man eine Klasse mit
+denselben zwei Methoden schreibt und sie in stimme_erzeugen() eintraegt.
 """
 
 from __future__ import annotations
@@ -115,11 +117,28 @@ class WindowsStimme:
             self._proc = None
 
 
-def stimme_erzeugen(cfg: dict):
+def stimme_erzeugen(cfg: dict, ordner: Path | None = None):
     """Erzeugt die Stimme laut [sprachausgabe] in der config.toml."""
     engine = cfg.get("engine", "windows")
     if engine == "aus":
         return StummeStimme()
+    if engine == "piper":
+        try:
+            from .piper_stimme import STIMMEN_ORDNER, PiperStimme
+
+            name = cfg.get("piper_stimme", "") or "de_DE-thorsten-high"
+            return PiperStimme(
+                (ordner or Path(".")) / STIMMEN_ORDNER / f"{name}.onnx",
+                tempo=cfg.get("tempo", 0),
+                lautstaerke=cfg.get("lautstaerke", 100),
+                geraet=cfg.get("ausgabegeraet", ""),
+                funk=cfg.get("funkeffekt", False),
+            )
+        except ImportError:
+            log.error("Piper ist nicht installiert - stimmen.bat ausführen. Nehme die Windows-Stimme.")
+        except Exception as e:
+            log.error("Piper-Stimme nicht verfügbar (%s) - nehme die Windows-Stimme.", e)
+        engine = "windows"
     if engine == "windows" and sys.platform == "win32":
         try:
             return WindowsStimme(

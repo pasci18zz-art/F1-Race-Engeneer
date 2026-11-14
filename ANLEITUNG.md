@@ -45,6 +45,7 @@ In diesem Ordner liegen ab jetzt alle Dateien, von denen unten die Rede ist:
 | `start.bat` | startet den Renningenieur (das benutzt du jedes Mal) |
 | `simulation.bat` | Testrennen ohne Spiel |
 | `geraete.bat` | zeigt Mikrofone und Lenkradtasten an |
+| `stimmen.bat` | natürlichere Stimme auswählen (siehe K0) |
 | `pruefen.bat` | prüft, ob die Daten des Spiels richtig ankommen |
 | `config.toml` | deine Einstellungen (entsteht beim ersten Start) |
 | `texte.toml` | alle Sprüche (entsteht beim ersten Start) |
@@ -244,6 +245,27 @@ mit“ → „Editor“. Nach dem Speichern `start.bat` neu starten.
 
 Hast du dich vertippt und das Programm startet nicht mehr: die Datei löschen.
 Beim nächsten Start wird sie neu mit den Standardwerten angelegt.
+
+## K0. Andere Stimme (natürlicher, optional mit Funk-Klang)
+
+Die Windows-Stimme klingt blechern. Besser klingt **Piper**: kostenlose,
+natürliche Stimmen, die genauso komplett auf deinem PC laufen.
+
+1. `start.bat` schließen.
+2. **`stimmen.bat` doppelklicken.**
+3. Beim ersten Mal installiert es Piper und lädt sieben deutsche Stimmen
+   (zusammen etwa 400 MB, dauert ein paar Minuten).
+4. Dann werden alle Stimmen nacheinander über deine Kopfhörer vorgespielt,
+   im Fenster steht jeweils die Nummer dazu.
+5. Die Nummer der Stimme eintippen, die dir gefällt, und **Enter** drücken.
+   (Nur Enter = alle noch einmal anhören. 0 = Windows-Stimme behalten.)
+6. Die gewählte Stimme kommt noch einmal **mit Funk-Effekt** – klingt wie
+   Boxenfunk. `j` + Enter = mit Effekt, `n` + Enter = ohne.
+7. Fertig. `start.bat` starten, ab jetzt spricht die neue Stimme.
+
+Umentscheiden kannst du jederzeit: `stimmen.bat` noch einmal starten.
+Sprechtempo und Lautstärke stehen in `config.toml` unter `[sprachausgabe]`
+(`tempo` von -10 bis 10, `lautstaerke` von 0 bis 100).
 
 ## K. Was du fragen kannst
 

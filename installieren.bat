@@ -19,6 +19,8 @@ if errorlevel 1 echo WARNUNG: vosk konnte nicht installiert werden - Spracheinga
 if errorlevel 1 echo WARNUNG: sounddevice konnte nicht installiert werden - Mikrofon fehlt dann.
 %PY% -m pip install pygame-ce
 if errorlevel 1 echo WARNUNG: pygame-ce konnte nicht installiert werden - Lenkradtaste fehlt dann.
+%PY% -m pip install piper-tts
+if errorlevel 1 echo WARNUNG: piper-tts konnte nicht installiert werden - natuerliche Stimme fehlt dann.
 echo.
 echo Lade das deutsche Sprachmodell (ca. 45 MB) ...
 %PY% -m renningenieur modell

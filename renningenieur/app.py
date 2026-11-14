@@ -4,6 +4,7 @@
     python -m renningenieur simulation      simuliertes Rennen senden (zweites Fenster)
     python -m renningenieur geraete         Mikrofone, Stimmen, Lenkradtasten anzeigen
     python -m renningenieur modell          Sprachmodell herunterladen
+    python -m renningenieur stimmen         natuerliche Stimmen anhoeren und auswaehlen
     python -m renningenieur abspielen X     aufgezeichnete Telemetrie abspielen
     python -m renningenieur pruefen         empfangene Pakete zaehlen und pruefen
 """
@@ -54,7 +55,7 @@ def befehl_start(args) -> int:
         datenbank = Datenbank(str(ordner / cfg["datenbank"]["datei"]))
         datenbank.start()
 
-    kern = Kern(cfg, texte, stimme_erzeugen(cfg["sprachausgabe"]), datenbank)
+    kern = Kern(cfg, texte, stimme_erzeugen(cfg["sprachausgabe"], ordner), datenbank)
     kern.funk.start()
 
     aufnahme = Aufnahme(args.aufnahme) if args.aufnahme else None
@@ -222,6 +223,14 @@ def befehl_geraete(args) -> int:
     return 0
 
 
+def befehl_stimmen(args) -> int:
+    from .sprache.piper_stimme import einrichten
+
+    ordner = Path(args.ordner).resolve()
+    cfg = konfig.config_laden(ordner, kopieren=True)
+    return einrichten(ordner, cfg["sprachausgabe"])
+
+
 def befehl_modell(args) -> int:
     from .sprache.erkennung import modell_laden
 
@@ -275,12 +284,13 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--sekunden", type=float, default=30)
 
     sub.add_parser("modell", help="Sprachmodell für die Erkennung herunterladen")
+    sub.add_parser("stimmen", help="natürliche Stimmen laden, anhören und auswählen")
 
     args = p.parse_args(argv)
     _logging(args.ausfuehrlich)
     befehle = {
         None: befehl_start, "start": befehl_start, "simulation": befehl_simulation,
         "abspielen": befehl_abspielen, "pruefen": befehl_pruefen,
-        "geraete": befehl_geraete, "modell": befehl_modell,
+        "geraete": befehl_geraete, "modell": befehl_modell, "stimmen": befehl_stimmen,
     }
     return befehle[args.befehl](args)

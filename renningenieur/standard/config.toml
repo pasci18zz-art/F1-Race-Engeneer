@@ -16,10 +16,14 @@ host = "0.0.0.0"
 weiterleiten = ["127.0.0.1:20778"]
 
 [sprachausgabe]
-# "windows" = Windows-Sprachausgabe (SAPI), "konsole" = nur Text im Fenster,
-# "aus" = stumm
+# "piper" = natürliche Stimme (einrichten mit stimmen.bat),
+# "windows" = Windows-Sprachausgabe, "konsole" = nur Text im Fenster, "aus" = stumm
 engine = "windows"
-# Teil des Stimmennamens, z. B. "Hedda". Leer = erste deutsche Stimme.
+# Nur für "piper": Name der Stimme (trägt stimmen.bat ein)
+piper_stimme = "de_DE-thorsten-high"
+# Nur für "piper": klingt wie Boxenfunk (Bandpass, leichtes Rauschen)
+funkeffekt = false
+# Nur für "windows": Teil des Stimmennamens, z. B. "Hedda". Leer = erste deutsche Stimme.
 stimme = ""
 # Sprechtempo von -10 (langsam) bis 10 (schnell)
 tempo = 2

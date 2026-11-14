@@ -152,6 +152,14 @@ ausgabegeraet = ""       # leer = Windows-Standardgerät
 - Die Windows-Sprachausgabe braucht eine deutsche Stimme (Windows-Einstellungen
   → Zeit und Sprache → Sprache → Deutsch → Sprachausgabe).
 
+## Stimme
+
+Neben der Windows-Stimme gibt es **Piper**: natürliche neuronale Stimmen, die
+ebenfalls lokal laufen (unter 0,2 s Rechenzeit pro Satz). `stimmen.bat` lädt
+die sieben deutschen Stimmen, spielt sie vor und trägt die gewählte in
+`config.toml` ein (`engine = "piper"`, `piper_stimme`). Mit `funkeffekt = true`
+klingt sie wie Boxenfunk.
+
 ## Fragen
 
 Erkannt wird am Stichwort, die genaue Formulierung ist egal.
@@ -257,7 +265,7 @@ der Python-Standardbibliothek aus.
 python -m unittest discover -s tests -t .
 ```
 
-90 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
+100 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
 UDP-Sockets, jede Regel mit ihren Schwellen, die Fragen, komplette simulierte
 Rennen von Paket bis Datenbank, Rückblenden, Webserver.
 
