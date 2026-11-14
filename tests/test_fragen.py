@@ -160,3 +160,70 @@ class TestAntworten(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestFragenZuAnderenFahrern(unittest.TestCase):
+    """Stand des Simulator-Rennens 'trocken' nach 520 Sekunden (Runde 7)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.kern, _ = rennen_fahren("trocken", bis=520)
+        cls.z = cls.kern.zustand
+        cls.ich = cls.z.spieler
+
+    def frage(self, text: str) -> str:
+        return self.kern.fragen.antwort(text)
+
+    def test_wer_ist_auf_position(self):
+        p17 = self.z.auto_auf_position(17)
+        for text in ("Wer ist auf Position siebzehn", "Wer ist auf Platz 17", "Position siebzehn",
+                     "Wer ist Siebzehnter"):
+            a = self.frage(text)
+            self.assertIn(p17.anzeigename, a, text)
+            self.assertIn("Platz 17", a, text)
+
+    def test_platz_eines_fahrers(self):
+        alonso = next(a for a in self.z.gueltige_autos() if a.name == "ALONSO")
+        a = self.frage("Auf welchem Platz ist Alonso")
+        self.assertIn(f"Alonso liegt auf Platz {alonso.position}", a)
+
+    def test_eigener_platz_bleibt(self):
+        self.assertEqual(self.frage("Auf welchem Platz bin ich"),
+                         f"Du bist auf Platz {self.ich.position}.")
+        self.assertEqual(self.frage("Wer ist auf Platz dreißig"),
+                         "Ich weiß nicht, welchen Fahrer du meinst.")
+
+    def test_wer_fuehrt_und_reihenfolge(self):
+        erster = self.z.fuehrender()
+        self.assertIn(erster.anzeigename, self.frage("Wer führt"))
+        a = self.frage("Wie ist die Reihenfolge")
+        self.assertTrue(a.startswith(f"Platz 1 {erster.anzeigename}, Platz 2 "))
+        self.assertIn("Platz 5 ", a)
+        self.assertNotIn("Platz 6 ", a.split(". ")[0])
+
+    def test_strategie_eines_fahrers(self):
+        # Piastri (Index 3) startet auf Soft und wechselt in Runde 3 auf Hard
+        a = self.frage("Wie ist die Strategie von Piastri")
+        self.assertEqual(a, "Piastri ist auf Soft gestartet. In Runde 3 Wechsel auf Hard. "
+                            "Bisher ein Stopp. Jetzt auf Hard, 4 Runden alt.")
+        # Der Spieler selbst stoppt in diesem Szenario erst in Runde 9
+        ohne = next(x for x in self.z.gueltige_autos()
+                    if x.boxenstopps_anzahl == 0 and x.idx != self.ich.idx)
+        a = self.frage(f"War {ohne.anzeigename} schon an der Box")
+        self.assertIn("gestartet", a)
+        self.assertIn("noch nicht an der Box", a)
+
+    def test_wer_war_noch_nicht_an_der_box(self):
+        a = self.frage("Wer war noch nicht an der Box")
+        self.assertTrue(a.startswith("Noch ohne Stopp: "))
+        self.assertIn("Spieler", a)
+        self.assertNotIn("Piastri", a)
+
+    def test_eigene_strategie_bleibt_boxenfenster(self):
+        self.assertIn("Boxenfenster", self.frage("Wie ist meine Strategie"))
+
+    def test_reifenverschleiss_eines_fahrers(self):
+        a = self.frage("Wie ist der Reifenverschleiß von Verstappen")
+        self.assertRegex(a, r"Verstappen fährt \w+, .*Verschleiß bis zu \d+ Prozent\.")
+        vorne = self.z.vordermann(self.ich)
+        self.assertIn(vorne.anzeigename, self.frage("Wie ist der Verschleiß beim Vordermann"))

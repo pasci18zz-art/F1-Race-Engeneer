@@ -97,13 +97,13 @@ THEMEN: list[tuple[str, tuple[str, ...]]] = [
                 "wie lange", "restrunden", "noch zu fahren", "welche runde",
                 "welcher runde")),
     ("position", ("position", "platz", "wievielter", "wo bin ich", "wo liege ich",
-                  "wo stehe ich")),
+                  "wo stehe ich", "reihenfolge", "rangfolge", "top", "fuhrt")),
 ]
 
 # Bezuege auf andere Fahrer
 _VORNE = ("vor mir", "vor uns", "vordermann", "vorder", "vorne", "vor dem ich")
 _HINTEN = ("hinter mir", "hinter uns", "hintermann", "hinten", "verfolger")
-_FUEHRENDER = ("fuhrend", "spitze", "leader", "spitzenreiter")
+_FUEHRENDER = ("fuhrend", "fuhrt", "spitze", "leader", "spitzenreiter")
 _TEAMKOLLEGE = ("teamkolleg", "team kolleg")
 _KUMPEL = ("kumpel", "freund", "mitspieler", "partner", "kollege", "kollegen")
 _ALLE = ("alle", "wer", "feld", "jeder", "gegner", "anderen", "ubersicht")
@@ -132,6 +132,14 @@ BEISPIELE = [
     "Wann ist das Boxenfenster",
     "Wie ist die Strategie",
     "Auf welchem Platz bin ich",
+    "Wer ist auf Position siebzehn",
+    "Auf welchem Platz ist Verstappen",
+    "Wer führt",
+    "Wie ist die Reihenfolge",
+    "Wie ist die Strategie von Verstappen",
+    "War der Hintermann schon an der Box",
+    "Wer war noch nicht an der Box",
+    "Wie ist der Reifenverschleiß von Verstappen",
     "Wie viele Runden noch",
     "Wie viel Sprit habe ich",
     "Habe ich einen Schaden",
@@ -433,8 +441,27 @@ class Fragen:
 
     # --- Sonstiges ----------------------------------------------------
     def _antwort_position(self, text, woerter, ich, bezug, auto) -> str:
-        return self.t.sag("antwort.position", platz=ich.position,
-                          anzahl=len(self.z.gueltige_autos()))
+        z, t = self.z, self.t
+        if bezug == "unbekannt":
+            return t.sag("antwort.kein_fahrer")
+        if self._hat(text, woerter, ("reihenfolge", "rangfolge", "top")):
+            return self._reihenfolge(ich)
+        if bezug in ("fahrer", "vorne", "hinten", "fuehrender") and auto and auto.idx != ich.idx:
+            # "Wer ist auf Platz 17?" / "Wo liegt Verstappen?": Name, Platz und Abstand
+            antwort = self._antwort_abstand(text, woerter, ich, "fahrer", auto)
+            return antwort or t.sag("antwort.position_fahrer", name=auto.anzeigename,
+                                    platz=auto.position)
+        return t.sag("antwort.position", platz=ich.position, anzahl=len(z.gueltige_autos()))
+
+    def _reihenfolge(self, ich: Auto, anzahl: int = 5) -> str:
+        """Die ersten fuenf und, falls weiter hinten, der eigene Platz."""
+        autos = self.z.gueltige_autos()
+        teile = [self.t.sag("antwort.reihenfolge_eintrag", platz=a.position, name=a.anzeigename)
+                 for a in autos[:anzahl]]
+        satz = self.t.sag("antwort.reihenfolge", liste=", ".join(x for x in teile if x))
+        if ich.position > anzahl:
+            satz += " " + self.t.sag("antwort.position", platz=ich.position, anzahl=len(autos))
+        return satz
 
     def _antwort_runden(self, text, woerter, ich, bezug, auto) -> str:
         z = self.z
@@ -459,6 +486,12 @@ class Fragen:
         z, t = self.z, self.t
         if not z.ist_rennen:
             return ""
+        if bezug == "unbekannt":
+            return t.sag("antwort.kein_fahrer")
+        if bezug in ("fahrer", "vorne", "hinten", "fuehrender") and auto and auto.idx != ich.idx:
+            return self._strategie_fahrer(auto)
+        if bezug == "alle":
+            return self._box_uebersicht()
         teile = []
         if z.boxenfenster_ideal > 0:
             teile.append(t.sag("antwort.boxenfenster", ideal=z.boxenfenster_ideal,
@@ -468,6 +501,43 @@ class Fragen:
         if z.boxen_rueckkehr_position > 0:
             teile.append(t.sag("antwort.boxen_rueckkehr", platz=z.boxen_rueckkehr_position))
         return " ".join(x for x in teile if x)
+
+    def _strategie_fahrer(self, auto: Auto) -> str:
+        """Bisherige Strategie eines Fahrers: Startreifen, Wechsel, aktueller Reifen."""
+        t = self.t
+        if not auto.stints:
+            return ""
+        name = auto.anzeigename
+        erster = auto.stints[0]
+        teile = [t.sag("antwort.strategie_start", name=name,
+                       reifen=k.reifen(erster.visuell)["name"])]
+        for vorher, stint in zip(auto.stints, auto.stints[1:]):
+            teile.append(t.sag("antwort.strategie_wechsel",
+                               runde=vorher.end_runde or stint.start_runde,
+                               reifen=k.reifen(stint.visuell)["name"]))
+        stopps = auto.boxenstopps_anzahl
+        if stopps == 0 and len(auto.stints) == 1:
+            teile.append(t.sag("antwort.strategie_ohne_stopp", name=name))
+        elif stopps == 1:
+            teile.append(t.sag("antwort.strategie_ein_stopp"))
+        elif stopps > 1:
+            teile.append(t.sag("antwort.strategie_stopps", anzahl=stopps))
+        if auto.im_rennen and auto.in_box:
+            teile.append(t.sag("antwort.strategie_in_box", name=name))
+        elif auto.im_rennen and auto.status_bekannt and len(auto.stints) > 1:
+            teile.append(t.sag("antwort.strategie_aktuell", name=name,
+                               reifen_beschreibung=f.reifenbeschreibung(t, auto)))
+        elif auto.im_rennen and auto.status_bekannt and auto.reifenalter > 0:
+            teile.append(t.sag("antwort.strategie_alter", alter=auto.reifenalter))
+        return " ".join(x for x in teile if x)
+
+    def _box_uebersicht(self) -> str:
+        """Wer war noch nicht an der Box?"""
+        ohne = [a.anzeigename for a in self.z.gueltige_autos()
+                if a.im_rennen and a.boxenstopps_anzahl == 0]
+        if not ohne:
+            return self.t.sag("antwort.alle_gestoppt")
+        return self.t.sag("antwort.ohne_stopp", namen=", ".join(ohne), anzahl=len(ohne))
 
     def _antwort_schaden(self, text, woerter, ich, bezug, auto) -> str:
         if not ich.schaden_bekannt:

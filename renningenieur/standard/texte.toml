@@ -164,6 +164,31 @@ reifen_gruppe = ["{reifen}: {namen}."]
 # --- Sonstiges ---
 # {platz} {anzahl}
 position = ["Du bist auf Platz {platz}."]
+# {name} {platz}
+position_fahrer = ["{name} liegt auf Platz {platz}."]
+# Die ersten fünf: {liste} besteht aus Einträgen {platz} {name}
+reihenfolge = ["{liste}."]
+reihenfolge_eintrag = ["Platz {platz} {name}"]
+
+# --- Strategie eines anderen Fahrers ---
+# {name} {reifen}
+strategie_start = ["{name} ist auf {reifen} gestartet."]
+# {runde} {reifen}
+strategie_wechsel = ["In Runde {runde} Wechsel auf {reifen}."]
+# {name}
+strategie_ohne_stopp = ["Er war noch nicht an der Box."]
+strategie_ein_stopp = ["Bisher ein Stopp."]
+# {anzahl}
+strategie_stopps = ["Bisher {anzahl} Stopps."]
+# {name} {reifen_beschreibung}
+strategie_aktuell = ["Jetzt auf {reifen_beschreibung}."]
+strategie_in_box = ["Er ist gerade in der Box."]
+# {alter}
+strategie_alter = ["Die Reifen sind {alter} Runden alt."]
+# {namen} {anzahl}
+ohne_stopp = ["Noch ohne Stopp: {namen}."]
+alle_gestoppt = ["Alle waren schon an der Box."]
+
 # {runden} {runde} {gesamt}
 runden_noch = ["Noch {runden} Runden. Du bist in Runde {runde} von {gesamt}."]
 letzte_runde = ["Das ist die letzte Runde."]

@@ -161,8 +161,10 @@ Erkannt wird am Stichwort, die genaue Formulierung ist egal.
 | Wetter | „Kommt Regen?“ · „Wie ist das Wetter?“ · „Wann wird es trocken?“ |
 | Abstände | „Wie viele Sekunden zum Auto vor mir?“ · „Abstand nach hinten“ · „Rückstand auf den Führenden“ · „Wie weit ist Platz drei weg?“ · „Abstand zu Verstappen“ |
 | Entwicklung | „Wie viel habe ich in den letzten fünf Runden auf den Vordermann verloren?“ · „… auf meinen Kumpel gewonnen?“ |
-| Reifen | „Wie sind meine Reifen?“ · „Welche Reifen hat der Hintermann?“ · „Welche Mischung fährt wer?“ |
+| Reifen | „Wie sind meine Reifen?“ · „Welche Reifen hat der Hintermann?“ · „Wie ist der Reifenverschleiß von Verstappen?“ · „Welche Mischung fährt wer?“ |
 | Box | „Wann ist das Boxenfenster?“ (nennt vorerst das Fenster, das das Spiel berechnet) |
+| Strategie anderer | „Wie ist die Strategie von Verstappen?“ · „War der Hintermann schon an der Box?“ · „Wer war noch nicht an der Box?“ |
+| Positionen | „Wer ist auf Position siebzehn?“ · „Auf welchem Platz ist Leclerc?“ · „Wer führt?“ · „Wie ist die Reihenfolge?“ |
 | Sonstiges | „Auf welchem Platz bin ich?“ · „Wie viele Runden noch?“ · „Wie viel Sprit habe ich?“ · „Habe ich einen Schaden?“ · „Habe ich Strafen?“ · „Wie war meine Rundenzeit?“ |
 
 Einen Fahrer meinst du mit „vor mir“, „hinter mir“, „der Führende“, „Platz
@@ -255,7 +257,7 @@ der Python-Standardbibliothek aus.
 python -m unittest discover -s tests -t .
 ```
 
-82 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
+90 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
 UDP-Sockets, jede Regel mit ihren Schwellen, die Fragen, komplette simulierte
 Rennen von Paket bis Datenbank, Rückblenden, Webserver.
 

@@ -245,6 +245,39 @@ mit“ → „Editor“. Nach dem Speichern `start.bat` neu starten.
 Hast du dich vertippt und das Programm startet nicht mehr: die Datei löschen.
 Beim nächsten Start wird sie neu mit den Standardwerten angelegt.
 
+## K. Was du fragen kannst
+
+Die genaue Formulierung ist egal, es kommt auf die Stichwörter an.
+
+| Du willst wissen | Sag zum Beispiel |
+|---|---|
+| Wetter | „Kommt Regen?“ · „Wann wird es trocken?“ |
+| Abstand | „Wie viele Sekunden zum Auto vor mir?“ · „Abstand nach hinten“ · „Rückstand auf den Führenden“ · „Abstand zu Verstappen“ |
+| Verloren oder gewonnen | „Wie viel habe ich in den letzten fünf Runden auf den Vordermann verloren?“ |
+| Eigene Reifen | „Wie sind meine Reifen?“ |
+| Reifen eines anderen | „Welche Reifen hat der Hintermann?“ · „Wie ist der Reifenverschleiß von Verstappen?“ |
+| Reifen aller | „Welche Mischung fährt wer?“ |
+| Strategie eines anderen | „Wie ist die Strategie von Verstappen?“ · „War der Hintermann schon an der Box?“ |
+| Wer noch nicht gestoppt hat | „Wer war noch nicht an der Box?“ |
+| Wer wo liegt | „Wer ist auf Position siebzehn?“ · „Auf welchem Platz ist Leclerc?“ · „Wer führt?“ · „Wie ist die Reihenfolge?“ |
+| Eigene Lage | „Auf welchem Platz bin ich?“ · „Wie viele Runden noch?“ · „Wann ist das Boxenfenster?“ |
+| Auto | „Wie viel Sprit habe ich?“ · „Habe ich einen Schaden?“ · „Habe ich Strafen?“ |
+
+Einen Fahrer meinst du mit seinem Namen, seinem Team, „Platz vier“, „der
+Dritte“, „vor mir“, „hinter mir“, „der Führende“, „mein Teamkollege“ oder
+„mein Kumpel“.
+
+## L. Neue Version einspielen
+
+1. `start.bat` schließen.
+2. Auf GitHub wieder **„Code“ → „Download ZIP“**, entpacken.
+3. Im entpackten Ordner alles markieren (Strg+A), kopieren (Strg+C).
+4. In deinen Programmordner einfügen (Strg+V) → **„Dateien ersetzen“**.
+
+Deine Einstellungen (`config.toml`), deine Sprüche (`texte.toml`), die
+gespeicherten Rennen und das Sprachmodell bleiben dabei erhalten.
+`installieren.bat` musst du nicht noch einmal ausführen.
+
 ## Wenn etwas nicht klappt
 
 | Was du siehst | Was zu tun ist |
