@@ -5,7 +5,9 @@ Das Mikrofon laeuft dauerhaft mit und fuellt einen kleinen Ringpuffer
 mit dem Inhalt dieses Puffers - der Satzanfang geht also nicht verloren,
 auch wenn man schon beim Druecken losspricht.
 
-Aufgenommen wird Mono, 16 Bit, in der Abtastrate des Geraets.
+Aufgenommen wird Mono, 16 Bit. Zuerst wird 16 kHz versucht (das erwarten
+die Spracherkennungen); geht das nicht, wird die Abtastrate des Geraets
+benutzt.
 """
 
 from __future__ import annotations
@@ -16,6 +18,8 @@ import threading
 import time
 
 log = logging.getLogger(__name__)
+
+MIN_NACHLAUF = 0.4  # kuerzer schneidet oft das letzte Wort ab
 
 
 def eingabegeraete() -> list[tuple[int, str, str]]:
@@ -45,17 +49,19 @@ def geraet_finden(wahl: str | int) -> int | None:
 
 
 class Mikrofon:
-    def __init__(self, geraet: str | int = "", vorlauf: float = 0.5, nachlauf: float = 0.3,
+    def __init__(self, geraet: str | int = "", vorlauf: float = 0.5, nachlauf: float = 0.5,
                  max_sekunden: float = 10.0):
         self.wahl = geraet
         self.vorlauf = vorlauf
-        self.nachlauf = nachlauf
+        self.nachlauf = max(nachlauf, MIN_NACHLAUF)
         self.max_sekunden = max_sekunden
         self.samplerate = 16000
+        self.name = ""
         self._lock = threading.Lock()
         self._ring: collections.deque[bytes] = collections.deque()
         self._aufnahme: list[bytes] | None = None
         self._aufnahme_bytes = 0
+        self._max_bytes = 0
         self._stream = None
 
     def start(self) -> None:
@@ -63,16 +69,29 @@ class Mikrofon:
 
         nummer = geraet_finden(self.wahl)
         info = sd.query_devices(nummer, "input")
-        self.samplerate = int(info["default_samplerate"])
-        block = max(self.samplerate // 20, 256)  # 50 ms
-        self._ring = collections.deque(
-            maxlen=max(int(self.vorlauf * self.samplerate / block) + 1, 1))
-        self._max_bytes = int(self.max_sekunden * self.samplerate) * 2
-        self._stream = sd.RawInputStream(
-            samplerate=self.samplerate, blocksize=block, device=nummer,
-            channels=1, dtype="int16", callback=self._callback)
-        self._stream.start()
-        log.info("Mikrofon: %s (%s Hz)", info["name"], self.samplerate)
+        self.name = info["name"]
+        standard = int(info["default_samplerate"])
+        letzter: Exception | None = None
+        for rate in dict.fromkeys((16000, standard)):
+            try:
+                self._oeffnen(sd, nummer, rate)
+                break
+            except Exception as e:  # PortAudioError: Rate wird nicht unterstuetzt
+                letzter = e
+                log.debug("Mikrofon mit %s Hz nicht moeglich: %s", rate, e)
+        else:
+            raise RuntimeError(f"Mikrofon lässt sich nicht öffnen: {letzter}")
+        log.info("Mikrofon: %s (%s Hz)", self.name, self.samplerate)
+
+    def _oeffnen(self, sd, nummer, rate: int) -> None:
+        block = max(rate // 20, 256)  # 50 ms
+        self._ring = collections.deque(maxlen=max(int(self.vorlauf * rate / block) + 1, 1))
+        self._max_bytes = int(self.max_sekunden * rate) * 2
+        stream = sd.RawInputStream(samplerate=rate, blocksize=block, device=nummer,
+                                   channels=1, dtype="int16", callback=self._callback)
+        stream.start()
+        self._stream = stream
+        self.samplerate = rate
 
     def stop(self) -> None:
         if self._stream:

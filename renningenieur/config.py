@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import random
+import re
 import shutil
 import tomllib
 from pathlib import Path
@@ -61,6 +62,33 @@ def adressen(eintraege: list[str]) -> list[tuple[str, int]]:
         host, _, port = str(e).rpartition(":")
         out.append((host or "127.0.0.1", int(port)))
     return out
+
+
+def eintraege_setzen(pfad: Path, abschnitt: str, werte: dict) -> None:
+    """Setzt Eintraege im Abschnitt [abschnitt] einer config.toml.
+
+    Vorhandene Zeilen werden ersetzt, fehlende direkt unter der Ueberschrift
+    eingefuegt. Alles andere (Kommentare, andere Abschnitte) bleibt.
+    """
+    zeilen = pfad.read_text(encoding="utf-8").splitlines() if pfad.exists() else []
+    start = next((i for i, z in enumerate(zeilen) if z.strip() == f"[{abschnitt}]"), None)
+    if start is None:
+        zeilen += ["", f"[{abschnitt}]"]
+        start = len(zeilen) - 1
+    ende = next((i for i in range(start + 1, len(zeilen))
+                 if re.match(r"\s*\[", zeilen[i])), len(zeilen))
+    for schluessel, wert in werte.items():
+        text = f"{schluessel} = " + (f'"{wert}"' if isinstance(wert, str)
+                                      else str(wert).lower() if isinstance(wert, bool)
+                                      else str(wert))
+        for i in range(start + 1, ende):
+            if re.match(rf"\s*{re.escape(schluessel)}\s*=", zeilen[i]):
+                zeilen[i] = text
+                break
+        else:
+            zeilen.insert(start + 1, text)
+            ende += 1
+    pfad.write_text("\n".join(zeilen) + "\n", encoding="utf-8")
 
 
 class Texte:

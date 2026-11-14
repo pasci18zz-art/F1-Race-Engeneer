@@ -4,6 +4,8 @@
     python -m renningenieur simulation      simuliertes Rennen senden (zweites Fenster)
     python -m renningenieur geraete         Mikrofone, Stimmen, Lenkradtasten anzeigen
     python -m renningenieur modell          Sprachmodell herunterladen
+    python -m renningenieur mikrofontest    Mikrofon und Spracherkennung ausprobieren
+    python -m renningenieur whisper         genauere Spracherkennung installieren
     python -m renningenieur stimmen         natuerliche Stimmen anhoeren und auswaehlen
     python -m renningenieur abspielen X     aufgezeichnete Telemetrie abspielen
     python -m renningenieur pruefen         empfangene Pakete zaehlen und pruefen
@@ -78,6 +80,8 @@ def befehl_start(args) -> int:
         log.error("%s", e)
         kern.funk.stop()
         return 1
+    for host, port in relay.ziele:
+        log.info("SimHub muss dafür auf Port %s hören (F1 25, Game config, UDP-Port).", port)
     if not args.ohne_mikrofon:
         sprechfunk.start()
 
@@ -86,8 +90,10 @@ def befehl_start(args) -> int:
     try:
         gemeldet = 0
         format_gemeldet = False
+        ziel_zustand: dict = {}
         while True:
             time.sleep(5)
+            _ziele_pruefen(relay, ziel_zustand)
             if relay.empfangen == 0:
                 gemeldet += 1
                 if gemeldet in (3, 12):
@@ -111,6 +117,26 @@ def befehl_start(args) -> int:
             log.info("%s Pakete aufgezeichnet in %s", aufnahme.anzahl, args.aufnahme)
         kern.funk.stop()
     return 0
+
+
+def _ziele_pruefen(relay, bisher: dict) -> None:
+    """Meldet, ob die Weiterleitungsziele (z. B. SimHub) die Pakete annehmen."""
+    if relay.empfangen == 0:
+        return
+    for adresse, zustand in relay.pruefe_ziele():
+        if zustand == "unbekannt" or bisher.get(adresse) == zustand:
+            continue
+        host, port = adresse
+        if zustand == "abgelehnt":
+            log.warning(
+                "Weiterleitung an %s:%s: Dort hört niemand zu. SimHub zeigt deshalb keine Daten. "
+                "In SimHub bei F1 25 unter Game config muss als UDP-Port %s stehen "
+                "(danach SimHub neu starten).", host, port, port)
+        elif adresse in bisher:
+            log.info("Weiterleitung an %s:%s funktioniert wieder.", host, port)
+        else:
+            log.info("Weiterleitung an %s:%s funktioniert (SimHub empfängt).", host, port)
+        bisher[adresse] = zustand
 
 
 def _tastatur_fragen(kern) -> None:
@@ -231,6 +257,22 @@ def befehl_stimmen(args) -> int:
     return einrichten(ordner, cfg["sprachausgabe"])
 
 
+def befehl_mikrofontest(args) -> int:
+    from .sprache.mikrofontest import testen
+
+    ordner = Path(args.ordner).resolve()
+    cfg = konfig.config_laden(ordner, kopieren=True)
+    return testen(cfg, ordner, sekunden=args.sekunden)
+
+
+def befehl_whisper(args) -> int:
+    from .sprache import whisper_einrichtung
+
+    ordner = Path(args.ordner).resolve()
+    cfg = konfig.config_laden(ordner, kopieren=True)
+    return whisper_einrichtung.einrichten(ordner, cfg, args.modell)
+
+
 def befehl_modell(args) -> int:
     from .sprache.erkennung import modell_laden
 
@@ -286,11 +328,18 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("modell", help="Sprachmodell für die Erkennung herunterladen")
     sub.add_parser("stimmen", help="natürliche Stimmen laden, anhören und auswählen")
 
+    s = sub.add_parser("mikrofontest", help="Mikrofon und Spracherkennung ausprobieren")
+    s.add_argument("--sekunden", type=float, default=5)
+
+    s = sub.add_parser("whisper", help="genauere Spracherkennung (Whisper) installieren")
+    s.add_argument("modell", nargs="?", default="", help="tiny, base, small oder medium")
+
     args = p.parse_args(argv)
     _logging(args.ausfuehrlich)
     befehle = {
         None: befehl_start, "start": befehl_start, "simulation": befehl_simulation,
         "abspielen": befehl_abspielen, "pruefen": befehl_pruefen,
         "geraete": befehl_geraete, "modell": befehl_modell, "stimmen": befehl_stimmen,
+        "mikrofontest": befehl_mikrofontest, "whisper": befehl_whisper,
     }
     return befehle[args.befehl](args)

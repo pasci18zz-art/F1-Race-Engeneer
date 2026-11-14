@@ -40,14 +40,26 @@ max_wartezeit = 20
 geraet = ""
 # So viel wird VOR dem Tastendruck mit aufgenommen (Satzanfang).
 vorlauf_sekunden = 0.5
-# So lange läuft die Aufnahme nach dem Loslassen weiter.
-nachlauf_sekunden = 0.3
+# So lange läuft die Aufnahme nach dem Loslassen weiter (mindestens 0,4,
+# sonst wird das letzte Wort abgeschnitten).
+nachlauf_sekunden = 0.5
+# Die letzte Aufnahme als letzte_aufnahme.wav speichern. So kannst du
+# nachhören, was die Spracherkennung zu hören bekam.
+aufnahme_speichern = true
 # Längste Aufnahme
 max_sekunden = 10
 
 [spracherkennung]
 aktiv = true
-# Ordner mit dem Vosk-Modell (siehe README)
+# "vosk" = klein und schnell, aber ungenau.
+# "whisper" = deutlich genauer, braucht 1 bis 3 Sekunden pro Frage.
+# Umstellen mit whisper.bat.
+engine = "vosk"
+# Nur für "whisper": tiny, base, small oder medium
+whisper_modell = "small"
+# Nur für "whisper": so viele Prozessorkerne darf die Erkennung kurz nutzen
+whisper_threads = 4
+# Nur für "vosk": Ordner mit dem Modell (siehe README)
 modell = "modelle/vosk-model-small-de-0.15"
 # true = Vosk hört nur auf die Wörter, die das Programm kennt. Das ist bei
 # Nebengeräuschen robuster, Fahrernamen müssen dann aber als Alias

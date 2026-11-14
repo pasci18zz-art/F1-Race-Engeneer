@@ -214,25 +214,9 @@ def piper_installieren(ausgabe=print) -> bool:
 
 def config_setzen(pfad: Path, werte: dict) -> None:
     """Setzt Eintraege im Abschnitt [sprachausgabe] der config.toml, Rest bleibt."""
-    zeilen = pfad.read_text(encoding="utf-8").splitlines() if pfad.exists() else []
-    start = next((i for i, z in enumerate(zeilen) if z.strip() == "[sprachausgabe]"), None)
-    if start is None:
-        zeilen += ["", "[sprachausgabe]"]
-        start = len(zeilen) - 1
-    ende = next((i for i in range(start + 1, len(zeilen))
-                 if re.match(r"\s*\[", zeilen[i])), len(zeilen))
-    for schluessel, wert in werte.items():
-        text = f"{schluessel} = " + (f'"{wert}"' if isinstance(wert, str)
-                                      else str(wert).lower() if isinstance(wert, bool)
-                                      else str(wert))
-        for i in range(start + 1, ende):
-            if re.match(rf"\s*{re.escape(schluessel)}\s*=", zeilen[i]):
-                zeilen[i] = text
-                break
-        else:
-            zeilen.insert(start + 1, text)
-            ende += 1
-    pfad.write_text("\n".join(zeilen) + "\n", encoding="utf-8")
+    from ..config import eintraege_setzen
+
+    eintraege_setzen(pfad, "sprachausgabe", werte)
 
 
 def einrichten(ordner: Path, cfg_sprache: dict, eingabe=input, ausgabe=print) -> int:

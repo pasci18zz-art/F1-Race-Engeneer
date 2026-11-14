@@ -256,7 +256,9 @@ Jedes Modul hat eine Aufgabe und lässt sich einzeln austauschen.
 | `sprache/stimmen.py` | Sprachausgaben (Windows, Konsole, stumm) |
 | `sprache/mikrofon.py` | Aufnahme mit Vorlauf |
 | `sprache/funktaste.py` | Lenkrad- und Tastaturtaste |
-| `sprache/erkennung.py` | Vosk |
+| `sprache/erkennung.py` | Spracherkennung: Vosk oder Whisper |
+| `sprache/audio.py` | Mikrofonaufnahme aufbereiten (Rumpeln weg, Lautstärke an) |
+| `sprache/mikrofontest.py` | Mikrofon und Erkennung ausprobieren |
 | `datenbank.py` | SQLite schreiben und lesen |
 | `schnappschuss.py` | Zustand als JSON für Web und Datenbank |
 | `web/` | Webserver und Tablet-Seite |
@@ -272,7 +274,7 @@ der Python-Standardbibliothek aus.
 python -m unittest discover -s tests -t .
 ```
 
-113 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
+140 Tests: Paketgrößen und Feldreihenfolge beider Formate, Relay über echte
 UDP-Sockets, jede Regel mit ihren Schwellen, die Fragen, komplette simulierte
 Rennen von Paket bis Datenbank, Rückblenden, Webserver.
 

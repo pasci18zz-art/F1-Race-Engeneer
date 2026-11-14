@@ -1,6 +1,9 @@
 # Nur fuer Spracheingabe und Lenkradtaste noetig. Empfang, Warnungen,
 # Windows-Sprachausgabe, Datenbank und Tablet-Seite brauchen keine Pakete.
+numpy>=1.26         # Aufbereitung der Mikrofonaufnahme
 vosk>=0.3.45          # Spracherkennung (offline)
 sounddevice>=0.4.6    # Mikrofonaufnahme
 pygame-ce>=2.5        # Lenkrad-/Controllertasten (wird als "pygame" geladen)
 piper-tts>=1.3        # natuerliche Stimme (offline)
+# Genauere Spracherkennung (optional, mit whisper.bat):
+# faster-whisper>=1.0

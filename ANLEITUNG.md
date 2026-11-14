@@ -46,6 +46,8 @@ In diesem Ordner liegen ab jetzt alle Dateien, von denen unten die Rede ist:
 | `simulation.bat` | Testrennen ohne Spiel |
 | `geraete.bat` | zeigt Mikrofone und Lenkradtasten an |
 | `stimmen.bat` | natürlichere Stimme auswählen (siehe K0) |
+| `mikrofontest.bat` | Mikrofon und Spracherkennung ausprobieren (siehe N) |
+| `whisper.bat` | genauere Spracherkennung installieren (siehe N) |
 | `pruefen.bat` | prüft, ob die Daten des Spiels richtig ankommen |
 | `config.toml` | deine Einstellungen (entsteht beim ersten Start) |
 | `texte.toml` | alle Sprüche (entsteht beim ersten Start) |
@@ -314,6 +316,65 @@ Deine Einstellungen (`config.toml`), deine Sprüche (`texte.toml`), die
 gespeicherten Rennen und das Sprachmodell bleiben dabei erhalten.
 `installieren.bat` musst du nicht noch einmal ausführen.
 
+## M. SimHub zeigt keine Daten mehr
+
+Der Renningenieur reicht jedes Paket an SimHub weiter und prüft selbst, ob
+dort jemand zuhört. Im Fenster von `start.bat` steht nach ein paar Sekunden
+Spielbetrieb eine von zwei Zeilen:
+
+- **„Weiterleitung an 127.0.0.1:20778 funktioniert (SimHub empfängt)."**
+  Dann kommen die Daten bei SimHub an. Prüf in SimHub, ob F1 25 das gewählte
+  Spiel ist und das Spiel läuft.
+- **„Weiterleitung an 127.0.0.1:20778: Dort hört niemand zu. …"**
+  Dann hört SimHub nicht auf Port 20778. So behebst du es:
+  1. SimHub öffnen, **F1 25** wählen, **Game config** anklicken.
+  2. Beim **Game telemetry UDP port** `20778` eintragen.
+  3. **SimHub komplett schließen und neu starten.**
+  4. Im Fenster von `start.bat` erscheint dann „… funktioniert wieder".
+
+Zusätzlich muss im Spiel weiter Port **20777** stehen. Bietet SimHub an,
+das Spiel automatisch zu konfigurieren, bestätige das nicht, sonst sendet
+das Spiel wieder direkt an SimHub.
+
+Die Prüfung läuft auf dem PC. Auch wenn sie „funktioniert" meldet, kann
+SimHub selbst noch etwas ablehnen, zum Beispiel wenn dort ein anderes Spiel
+gewählt ist.
+
+## N. Spracherkennung verbessern
+
+**Schritt 1: Herausfinden, woran es liegt.** `start.bat` schließen,
+**`mikrofontest.bat`** doppelklicken. Mit Enter startest du eine Aufnahme von
+fünf Sekunden: nach dem Piepton einen Satz sprechen, zum Beispiel „Wie viele
+Sekunden zum Auto vor mir?". Danach siehst du:
+
+- **Pegel und Urteil:** „gut", „zu leise", „fast leer" oder „übersteuert",
+  mit einem Hinweis, was zu tun ist.
+- **Was jede Erkennung daraus macht** und mit welcher Frage das Programm es
+  verbindet („Thema: abstand").
+- Die Aufnahme als `mikrofontest.wav` im Programmordner. Hör sie dir an. Hörst
+  du dort selbst schlecht, liegt es am Mikrofon, nicht an der Erkennung.
+
+Bei „zu leise": In den Windows-Soundeinstellungen unter Eingabe die
+Lautstärke des Mikrofons auf 100 stellen und näher ran. Die Buds sind unter
+Windows oft sehr leise.
+
+**Schritt 2: Die genauere Erkennung installieren.** **`whisper.bat`**
+doppelklicken. Es installiert Whisper, lädt das Modell (beim ersten Mal etwa
+500 MB, dafür muss der PC im Internet sein), misst, wie lange eine Erkennung
+auf deinem PC dauert, und stellt `config.toml` um. Danach mit
+`mikrofontest.bat` vergleichen: Dort steht Vosk neben Whisper.
+
+- Dauert Whisper zu lange, wähle ein kleineres Modell: `whisper.bat base`.
+- Zurück zu Vosk: in `config.toml` bei `[spracherkennung]` `engine = "vosk"`.
+
+**Kleine Tricks, die immer helfen:**
+- Die Lenkradtaste halten, bis der Satz **ganz zu Ende** ist, erst dann loslassen.
+- Kurze, klare Fragen. „Abstand nach hinten" statt langer Sätze.
+- Nach jeder Frage steht im Fenster `Aufnahme: …` und `Verstanden: …`. Die
+  Aufnahme liegt als `letzte_aufnahme.wav` im Programmordner.
+- Bei Vosk hilft eventuell `wortliste = true` bei `[spracherkennung]`: Dann hört
+  Vosk nur auf Wörter, die das Programm kennt.
+
 ## Wenn etwas nicht klappt
 
 | Was du siehst | Was zu tun ist |
@@ -323,7 +384,7 @@ gespeicherten Rennen und das Sprachmodell bleiben dabei erhalten.
 | „Noch keine Telemetrie“ | Einstellungen im Spiel prüfen → Teil D |
 | Zeilen mit „FUNK:“, aber kein Ton | Fenster fotografieren und schicken (siehe C3) |
 | „Spracheingabe aus: …“ | `installieren.bat` noch einmal laufen lassen |
-| SimHub zeigt nichts mehr an | `start.bat` läuft nicht, oder SimHub steht nicht auf 20778 |
+| SimHub zeigt nichts mehr an | Zeile „Weiterleitung an …“ im Fenster lesen, siehe M |
 | „Fehler in config.toml“ | Tippfehler in der Datei → Datei löschen, sie wird neu angelegt |
 
 Kommst du an einer Stelle nicht weiter: das schwarze Fenster fotografieren und
