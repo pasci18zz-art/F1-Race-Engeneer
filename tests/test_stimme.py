@@ -22,6 +22,54 @@ class TestUrl(unittest.TestCase):
                       ps.url("de_DE-eva_k-x_low", ".onnx.json"))
 
 
+class _Pae(Exception):
+    pass
+
+
+class _FalschesAudio:
+    """Attrappe fuer sounddevice: Geraet 1 ist ungueltig, bis das Audio-System neu startet."""
+
+    PortAudioError = _Pae
+
+    def __init__(self, nach_neustart_ok: bool):
+        self.ok, self.aufrufe, self.neu = nach_neustart_ok, [], False
+
+    def query_devices(self):
+        return [{"name": "Lautsprecher", "max_output_channels": 2},
+                {"name": "WH-CH720N Stereo", "max_output_channels": 2}]
+
+    def _terminate(self):
+        self.neu = self.ok
+
+    def _initialize(self):
+        pass
+
+    def play(self, audio, rate, device=None, blocking=True):
+        self.aufrufe.append(device)
+        if device == 1 and not self.neu:
+            raise _Pae("Invalid device [PaErrorCode -9996]")
+
+
+class TestAusgabeRueckfall(unittest.TestCase):
+    def test_neu_verbundener_kopfhoerer_wird_nach_neustart_gefunden(self):
+        import numpy as np
+        sd = _FalschesAudio(nach_neustart_ok=True)
+        self.assertTrue(ps._mit_sounddevice(sd, np.zeros(10, np.float32), 22050, "WH-CH720N"))
+        self.assertEqual(sd.aufrufe, [1, 1])
+
+    def test_kaputtes_geraet_faellt_auf_standard_zurueck(self):
+        import numpy as np
+        sd = _FalschesAudio(nach_neustart_ok=False)
+        self.assertTrue(ps._mit_sounddevice(sd, np.zeros(10, np.float32), 22050, "WH-CH720N"))
+        self.assertEqual(sd.aufrufe, [1, 1, None])
+
+    def test_ohne_geraetenamen_wird_das_standardgeraet_benutzt(self):
+        import numpy as np
+        sd = _FalschesAudio(nach_neustart_ok=False)
+        self.assertTrue(ps._mit_sounddevice(sd, np.zeros(10, np.float32), 22050, ""))
+        self.assertEqual(sd.aufrufe, [None])
+
+
 class TestConfigSetzen(unittest.TestCase):
     def test_nur_der_abschnitt_sprachausgabe_aendert_sich(self):
         ordner = Path(tempfile.mkdtemp())

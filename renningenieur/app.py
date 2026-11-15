@@ -162,7 +162,8 @@ def befehl_simulation(args) -> int:
         return 0
     runden = args.runden or (4 if args.szenario == "qualifying" else 12)
     sim = Simulator(args.szenario, fmt=args.format, runden=runden, seed=args.seed,
-                    strecke_id=args.strecke, saison_id=args.saison, wochenende_id=args.wochenende)
+                    strecke_id=args.strecke, saison_id=args.saison, wochenende_id=args.wochenende,
+                    session_typ=args.session_typ or None)
     print(f"Simuliere Szenario '{args.szenario}' (UDP-Format {args.format}, {runden} Runden) "
           f"an {args.host}:{args.port}, Tempo {args.tempo}x. Abbrechen mit Strg+C.")
     try:
@@ -313,6 +314,8 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--strecke", type=int, default=11, help="Strecken-ID (11 = Monza)")
     s.add_argument("--saison", type=int, default=2025001)
     s.add_argument("--wochenende", type=int, default=1)
+    s.add_argument("--session-typ", type=int, default=0,
+                   help="Session-Typ des Spiels, z. B. 6 = Qualifying 2, 10 = Sprint-Shootout 1")
     s.add_argument("--host", default="127.0.0.1")
     s.add_argument("--port", type=int, default=20777)
 

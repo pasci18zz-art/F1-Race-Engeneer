@@ -88,14 +88,21 @@
 
 <div class="block" id="lb-bericht">
   <h2>Bericht</h2>
-  <p class="leise">Alles zur laufenden Session in einer Datei: Wetter, Ergebnis, Ausfälle, Reifen, Rundenzeiten. Nach jedem Rennen und Qualifying wird sie auch automatisch im Ordner „exporte“ am PC abgelegt.</p>
-  <div class="bf-knoepfe">
-    <button type="button" id="lb-anzeigen">Bericht anzeigen</button>
-    <button type="button" id="lb-kopieren">Text kopieren</button>
-    <a class="knopf" id="lb-txt" href="/api/bericht?live=1&format=txt&download=1" download>Als Textdatei speichern</a>
-    <a class="knopf" id="lb-json" href="/api/bericht?live=1&format=json&download=1" download>Als JSON-Datei speichern</a>
+  <p class="leise">Alles zur laufenden Session in einer Datei: Wetter, Ergebnis, Ausfälle, Reifen, Reihenfolge nach jeder Runde, Rundenzeiten. Nach jedem Rennen und Qualifying wird sie auch automatisch im Ordner „exporte“ am PC abgelegt.</p>
+  <label class="schalter" id="lb-gesamt-zeile" hidden>
+    <input type="checkbox" id="lb-gesamt" checked> Alle Qualifying-Teile (Q1, Q2, Q3) in einer Datei
+  </label>
+  <div class="bericht-reihe"><span class="leise">Text (zum Lesen)</span>
+    <button type="button" data-bericht="lb" data-aktion="zeigen" data-format="txt">Anzeigen</button>
+    <button type="button" data-bericht="lb" data-aktion="kopieren" data-format="txt">Kopieren</button>
+    <button type="button" data-bericht="lb" data-aktion="speichern" data-format="txt">Speichern</button>
   </div>
-  <div id="lb-meldung" class="leise bericht-meldung"></div>
+  <div class="bericht-reihe"><span class="leise">JSON (für die Manager-App)</span>
+    <button type="button" data-bericht="lb" data-aktion="zeigen" data-format="json">Anzeigen</button>
+    <button type="button" data-bericht="lb" data-aktion="kopieren" data-format="json">Kopieren</button>
+    <button type="button" data-bericht="lb" data-aktion="speichern" data-format="json">Speichern</button>
+  </div>
+  <div id="lb-meldung" class="leise bericht-meldung" aria-live="polite"></div>
   <textarea id="lb-text" class="bericht-text" readonly hidden spellcheck="false"></textarea>
 </div>
     </div>
@@ -145,14 +152,21 @@
 
 <div class="block" id="rb-bericht">
   <h2>Bericht</h2>
-  <p class="leise">Diese Session als Datei: zum Lesen (.txt) oder zum Einlesen in eine Manager-App (.json).</p>
-  <div class="bf-knoepfe">
-    <button type="button" id="rb-anzeigen">Bericht anzeigen</button>
-    <button type="button" id="rb-kopieren">Text kopieren</button>
-    <a class="knopf" id="rb-txt" href="#" download>Als Textdatei speichern</a>
-    <a class="knopf" id="rb-json" href="#" download>Als JSON-Datei speichern</a>
+  <p class="leise">Diese Session als Datei: zum Lesen (Text) oder zum Einlesen in eine Manager-App (JSON).</p>
+  <label class="schalter" id="rb-gesamt-zeile" hidden>
+    <input type="checkbox" id="rb-gesamt" checked> Alle Qualifying-Teile (Q1, Q2, Q3) in einer Datei
+  </label>
+  <div class="bericht-reihe"><span class="leise">Text (zum Lesen)</span>
+    <button type="button" data-bericht="rb" data-aktion="zeigen" data-format="txt">Anzeigen</button>
+    <button type="button" data-bericht="rb" data-aktion="kopieren" data-format="txt">Kopieren</button>
+    <button type="button" data-bericht="rb" data-aktion="speichern" data-format="txt">Speichern</button>
   </div>
-  <div id="rb-meldung" class="leise bericht-meldung"></div>
+  <div class="bericht-reihe"><span class="leise">JSON (für die Manager-App)</span>
+    <button type="button" data-bericht="rb" data-aktion="zeigen" data-format="json">Anzeigen</button>
+    <button type="button" data-bericht="rb" data-aktion="kopieren" data-format="json">Kopieren</button>
+    <button type="button" data-bericht="rb" data-aktion="speichern" data-format="json">Speichern</button>
+  </div>
+  <div id="rb-meldung" class="leise bericht-meldung" aria-live="polite"></div>
   <textarea id="rb-text" class="bericht-text" readonly hidden spellcheck="false"></textarea>
 </div>
       <button id="rb-loeschen" class="gefahr">Diese Session löschen</button>

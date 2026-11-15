@@ -103,6 +103,9 @@ restart_fuehrung = ["Du führst das Rennen an."]
 rennstart = [
   "Rennen in {strecke}, {runden} Runden. Du startest von Platz {platz} auf {reifen_beschreibung}.",
 ]
+rennstart_sprint = [
+  "Sprintrennen in {strecke}, {runden} Runden. Du startest von Platz {platz} auf {reifen_beschreibung}.",
+]
 letzte_runde = ["Letzte Runde."]
 # {platz}
 ziel = ["Zielflagge. Platz {platz}."]

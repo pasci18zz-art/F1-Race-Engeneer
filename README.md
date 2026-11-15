@@ -94,6 +94,7 @@ dein Mitspieler heißt „Kumpel“.
 | `start.bat simulation trocken` | trockenes Rennen, Reifenverschleiß bis über 40 % |
 | `start.bat simulation regen` | Regen kündigt sich an und kommt |
 | `start.bat simulation rote_flagge` | rote Flagge mit Restart |
+| `… --session-typ 6` | andere Session: 5/6/7 Qualifying 1/2/3, 10/11/12 Sprint-Shootout (danach ein Rennen im selben `--wochenende` ist der Sprint) |
 | `… --tempo 5` | fünffacher Zeitraffer |
 | `… --format 2026` | Pakete im Format des 2026 Season Pack |
 | `… --strecke 10 --wochenende 2 --saison 7` | anderes Rennen für die Datenbank |
@@ -248,7 +249,7 @@ Jedes Modul hat eine Aufgabe und lässt sich einzeln austauschen.
 | `telemetrie/spec.py` | Paketformat 2025/2026 als Tabellen, Paketgrößen laut Spec |
 | `telemetrie/parser.py` | Bytes → Dictionary |
 | `telemetrie/encoder.py` | Dictionary → Bytes (für Simulator und Tests) |
-| `bericht.py` | Session-Bericht als Text und JSON, Export-Ordner (Format: `BERICHT_FORMAT.md`) |
+| `bericht.py` | Session-Bericht als Text und JSON, Qualifying gesamt, Export-Ordner (Format: `BERICHT_FORMAT.md`) |
 | `telemetrie/relay.py` | UDP-Empfang und Weiterleitung |
 | `telemetrie/aufnahme.py` | Telemetrie mitschneiden und abspielen |
 | `telemetrie/konstanten.py` | Wetter, Reifen, Teams, Strecken |

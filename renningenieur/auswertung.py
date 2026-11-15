@@ -34,6 +34,12 @@ class Auswertung:
         self._gemeldete_fehler: set[str] = set()
         self._ereignisse: list[Ereignis] = []
         self.pakete = 0
+        # Was ueber das Rennwochenende bekannt ist (ueberlebt den Wechsel der Session)
+        self._wochenende = {"saison": None, "id": None, "shootout": False, "rennen": 0}
+        self._rennen_gezaehlt: set[int] = set()
+        self.wochenende_info = None  # optional: (saison_id, wochenende_id) -> {"shootout", "rennen"}
+        self.sprint_auto = True  # Wochenende mit Sprint-Shootout: das erste Rennen ist der Sprint
+        self.sprint_max_runden = 0  # Rennen bis zu so vielen Runden sind Sprints (0 = aus)
 
     # ------------------------------------------------------------------
     def verarbeite(self, data: bytes) -> list[Ereignis]:
@@ -119,6 +125,7 @@ class Auswertung:
         z.sektor3_start = p["sector3_lap_distance_start"]
         z.session_bekannt = True
         if neu:
+            self._sprint_bestimmen()
             self._wetter_eintrag()
             self._melde("session_start")
             return
@@ -140,6 +147,28 @@ class Auswertung:
                     ende = "Safety Car" if altes_sc == k.SC_VOLL else "Virtuelles Safety Car"
                     self._momentaufnahme("gruen", f"{ende} beendet, Rennen freigegeben")
             self._melde("safety_car", alt=altes_sc, neu=z.safety_car)
+
+    def _sprint_bestimmen(self) -> None:
+        """Ist diese Session ein Sprintrennen? (Das Spiel meldet nur "Rennen".)"""
+        z = self.z
+        w = self._wochenende
+        schluessel = (z.saison_id, z.wochenende_id)
+        if z.wochenende_id and (w["saison"], w["id"]) != schluessel:
+            w.update(saison=z.saison_id, id=z.wochenende_id, shootout=False, rennen=0)
+            if self.wochenende_info:
+                try:
+                    w.update(self.wochenende_info(z.saison_id, z.wochenende_id) or {})
+                except Exception:
+                    log.exception("Rennwochenende konnte nicht nachgeschlagen werden")
+        if k.ist_shootout(z.session_typ) and z.wochenende_id:
+            w["shootout"] = True
+        z.sprint = False
+        if not z.ist_rennen:
+            return
+        if self.sprint_max_runden and 0 < z.runden_gesamt <= self.sprint_max_runden:
+            z.sprint = True
+        elif self.sprint_auto and z.wochenende_id and w["shootout"] and w["rennen"] == 0:
+            z.sprint = True
 
     def _gelbe_flaggen(self) -> None:
         """Erkennt neue und beendete gelbe Marschallzonen."""
@@ -164,6 +193,24 @@ class Auswertung:
             self._melde("gelbe_flagge_ende")
 
     # --- Momentaufnahme der Reihenfolge ---------------------------------
+    def _reihenfolge(self) -> list[dict]:
+        """Alle Autos nach Position mit Abstand, Reifen und Status."""
+        return [{
+            "position": a.position, "idx": a.idx, "name": a.anzeigename, "team": a.team,
+            "rueckstand_ms": a.delta_fuehrender_ms if a.position > 1 else 0,
+            "intervall_ms": a.delta_vorne_ms if a.position > 1 else 0,
+            "reifen": k.reifen(a.reifen_visuell)["kurz"], "reifenalter": a.reifenalter,
+            "in_box": a.in_box, "ausgefallen": a.result_status in (4, 5, 6, 7),
+        } for a in self.z.gueltige_autos()]
+
+    def _rundenstand(self, runde: int) -> None:
+        """Haelt fest, wer nach dieser Runde wo liegt (in jedem Rennen und Sprint)."""
+        z = self.z
+        if runde < 1 or runde in z.rundenstaende or not z.gueltige_autos():
+            return
+        z.rundenstaende[runde] = {"runde": runde, "zeit": round(z.session_time, 1),
+                                  "reihenfolge": self._reihenfolge()}
+
     def _momentaufnahme(self, grund: str, text: str) -> None:
         z = self.z
         autos = z.gueltige_autos()
@@ -177,13 +224,7 @@ class Auswertung:
             "runde": z.fuehrungsrunde(),
             "grund": grund,
             "text": text,
-            "reihenfolge": [{
-                "position": a.position, "idx": a.idx, "name": a.anzeigename, "team": a.team,
-                "rueckstand_ms": a.delta_fuehrender_ms if a.position > 1 else 0,
-                "intervall_ms": a.delta_vorne_ms if a.position > 1 else 0,
-                "reifen": k.reifen(a.reifen_visuell)["kurz"], "reifenalter": a.reifenalter,
-                "in_box": a.in_box, "ausgefallen": a.result_status in (4, 5, 6, 7),
-            } for a in autos],
+            "reihenfolge": self._reihenfolge(),
         })
         del z.momentaufnahmen[:-60]
         self._protokoll("STAND", f"Reihenfolge festgehalten: {text}")
@@ -280,6 +321,10 @@ class Auswertung:
                     )
                     stopp.standzeit_ms = max(stopp.standzeit_ms, c["pit_stop_timer_ms"])
                     self._melde("box_ausfahrt", idx=a.idx, runde=a.runde)
+        if z.ist_rennen and self._gesehen:
+            fuehrender = z.fuehrender()
+            if fuehrender is not None and fuehrender.result_status == k.RESULT_AKTIV:
+                self._rundenstand(fuehrender.runde - 1)  # Fuehrender hat die Vorrunde beendet
         self._melde("tick")
 
     def _runde_fertig(self, a: Auto, runde: int, zeit_ms: int) -> None:
@@ -448,6 +493,11 @@ class Auswertung:
                 self._ausfall(i, c["result_reason"])
             ergebnis.append({"idx": i, **c})
         z.klassifizierung = sorted(ergebnis, key=lambda e: e["position"])
+        if z.ist_rennen and z.session_uid not in self._rennen_gezaehlt:
+            self._rennen_gezaehlt.add(z.session_uid)
+            self._wochenende["rennen"] += 1
+        if z.ist_rennen and z.runden_gesamt:
+            self._rundenstand(z.runden_gesamt)  # Endstand der letzten Runde
         z.beendet = True
         self._melde("klassifizierung")
 
@@ -552,6 +602,7 @@ class Auswertung:
         z.wetter_log = [w for w in z.wetter_log if w["zeit"] <= t] or z.wetter_log[:1]
         z.ereignis_log = [e for e in z.ereignis_log if e["zeit"] <= t]
         z.momentaufnahmen = [m for m in z.momentaufnahmen if m["zeit"] <= t]
+        z.rundenstaende = {n: s for n, s in z.rundenstaende.items() if s["zeit"] <= t}
         for eintrag in [e for e in z.ausfaelle if e["zeit"] > t]:
             z.ausfaelle.remove(eintrag)
             z.autos[eintrag["idx"]].ausgefallen_runde = 0

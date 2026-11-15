@@ -96,7 +96,8 @@ def schnappschuss(z: Rennzustand, mit_runden: bool = False) -> dict:
                 "strecke_id": z.strecke_id,
                 "strecke": z.strecke,
                 "session_typ": z.session_typ,
-                "typ_name": k.SESSION_TYP.get(z.session_typ, "Session"),
+                "typ_name": "Sprintrennen" if z.sprint else k.SESSION_TYP.get(z.session_typ, "Session"),
+                "ist_sprint": z.sprint,
                 "ist_rennen": z.ist_rennen,
                 "ist_quali": z.ist_quali,
                 "quali_teil": k.quali_teil(z.session_typ),
@@ -136,6 +137,8 @@ def schnappschuss(z: Rennzustand, mit_runden: bool = False) -> dict:
             # Die Reihenfolgen sind gross: die Live-Abfrage (jede Sekunde) nennt nur die Anzahl,
             # die Seite holt die Liste bei Bedarf ueber /api/wendepunkte.
             "momentaufnahmen_anzahl": len(z.momentaufnahmen),
-            **({"momentaufnahmen": [dict(m) for m in z.momentaufnahmen]} if mit_runden else {}),
+            **({"momentaufnahmen": [dict(m) for m in z.momentaufnahmen],
+                "rundenstaende": [z.rundenstaende[n] for n in sorted(z.rundenstaende)]}
+               if mit_runden else {}),
             "autos": autos,
         }

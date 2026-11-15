@@ -104,7 +104,8 @@ class SimAuto:
 class Simulator:
     def __init__(self, szenario: str = "alles", fmt: int = 2025, runden: int = 12,
                  seed: int = 1, dt: float = 0.25, session_uid: int | None = None,
-                 strecke_id: int = 11, saison_id: int = 2025001, wochenende_id: int = 1):
+                 strecke_id: int = 11, saison_id: int = 2025001, wochenende_id: int = 1,
+                 session_typ: int | None = None):
         if szenario not in SZENARIEN:
             raise ValueError(f"Unbekanntes Szenario {szenario!r}. Es gibt: {', '.join(SZENARIEN)}")
         self.fmt = fmt
@@ -125,7 +126,7 @@ class Simulator:
         self.gelb_zonen: set[int] = set()
         plan = SZENARIEN[szenario]
         self.quali = bool(plan.get("quali"))
-        self.session_typ = 5 if self.quali else 15
+        self.session_typ = session_typ or (5 if self.quali else 15)
         self.wetterplan: list[tuple[float, int]] = plan["wetter"]
         self.ereignisplan: list[tuple[float, str]] = sorted(plan.get("ereignisse", []))
         self.autos = [

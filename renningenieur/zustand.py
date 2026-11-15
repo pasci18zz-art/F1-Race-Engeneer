@@ -178,6 +178,7 @@ class Rennzustand:
         self.runden_gesamt = 0
         self.streckenlaenge = 0
         self.session_typ = 0
+        self.sprint = False  # Rennen ist ein Sprint (vom Programm erkannt, das Spiel sagt nur "Rennen")
         self.strecke_id = -1
         self.formel = 0
         self.zeit_uebrig = 0
@@ -204,6 +205,7 @@ class Rennzustand:
         self.klassifizierung: list[dict] | None = None
         self.ausfaelle: list[dict] = []  # wer in welcher Runde warum ausgeschieden ist
         self.momentaufnahmen: list[dict] = []  # Reihenfolge bei Start, SC, roter Flagge, ...
+        self.rundenstaende: dict[int, dict] = {}  # Runde -> komplette Reihenfolge nach dieser Runde
         self.marshal_zonen: list[dict] = []
         self.gelb_zonen: set[int] = set()
         self.sektor2_start = 0.0

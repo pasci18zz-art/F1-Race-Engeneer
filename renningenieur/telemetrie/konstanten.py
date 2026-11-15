@@ -209,6 +209,11 @@ QUALI_SESSIONS = tuple(range(5, 15))
 TRAINING_SESSIONS = (1, 2, 3, 4)
 
 
+def ist_shootout(session_type: int) -> bool:
+    """Sprint-Shootout (Sprint-Qualifying): Session-Typen 10 bis 14."""
+    return 10 <= session_type <= 14
+
+
 def ist_quali(session_type: int) -> bool:
     return session_type in QUALI_SESSIONS
 

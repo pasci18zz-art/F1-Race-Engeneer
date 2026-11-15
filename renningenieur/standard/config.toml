@@ -179,6 +179,16 @@ feste_sekunden = 0
 # vielen Sekunden ab.
 warten_sekunden = 5
 
+[sprint]
+# Das Spiel meldet ein Sprintrennen nur als "Rennen". Das Programm erkennt es selbst
+# und nennt es dann "Sprintrennen" (Seite, Bericht, Dateiname).
+# auto = true: Gab es an diesem Wochenende ein Sprint-Qualifying (Sprint-Shootout),
+# dann ist das erste Rennen der Sprint.
+auto = true
+# Zusätzlich: ein Rennen mit höchstens so vielen Runden gilt als Sprint.
+# 0 = aus. Beispiel: fährst du Sprints über 8 Runden, trag 10 ein.
+max_runden = 0
+
 [export]
 # Nach jedem Rennen und Qualifying schreibt das Programm automatisch einen
 # Bericht (Textdatei zum Lesen und JSON-Datei für die Manager-App).

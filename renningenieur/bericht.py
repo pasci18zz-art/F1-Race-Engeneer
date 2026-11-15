@@ -15,13 +15,14 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 
 from .telemetrie import konstanten as k
 
 SCHEMA = "renningenieur.bericht"
-VERSION = 1
+VERSION = 2
 
 
 # --------------------------------------------------------------------------
@@ -94,6 +95,8 @@ def bericht_bauen(daten: dict, erstellt: str | None = None) -> dict:
             "typ": s.get("session_typ"),
             "typ_name": s.get("typ_name"),
             "ist_rennen": bool(s.get("ist_rennen")),
+            "ist_sprint": bool(s.get("ist_sprint")),
+            "art": _art(s),
             "ist_quali": ist_quali,
             "quali_teil": s.get("quali_teil") or "",
             "strecke": s.get("strecke"),
@@ -122,8 +125,22 @@ def bericht_bauen(daten: dict, erstellt: str | None = None) -> dict:
             "teil": s.get("quali_teil") or "",
         }
     else:
-        bericht["positionsverlauf"] = _positionsverlauf(fahrer)
+        bericht["positionsverlauf"] = _positionsverlauf(daten, fahrer)
     return bericht
+
+
+def _art(s: dict) -> str:
+    """"rennen", "sprint", "qualifying", "sprint_shootout", "training" oder "sonstige"."""
+    typ = s.get("session_typ") or 0
+    if s.get("ist_sprint"):
+        return "sprint"
+    if s.get("ist_rennen"):
+        return "rennen"
+    if k.ist_shootout(typ):
+        return "sprint_shootout"
+    if k.ist_quali(typ):
+        return "qualifying"
+    return "training" if typ in k.TRAINING_SESSIONS else "sonstige"
 
 
 def _wetter(log: list[dict]) -> dict:
@@ -269,8 +286,13 @@ def _schnellste_runde(autos: list[dict]) -> dict | None:
     return beste
 
 
-def _positionsverlauf(fahrer: list[dict]) -> list[dict]:
-    """Je Runde die Reihenfolge am Ende der Runde (nach Auto-Index sortierte Positionen)."""
+def _positionsverlauf(daten: dict, fahrer: list[dict]) -> list[dict]:
+    """Je Runde die komplette Reihenfolge (wer liegt nach dieser Runde wo)."""
+    staende = daten.get("rundenstaende") or []
+    if staende:
+        return [{"runde": r["runde"], "zeit": r.get("zeit"), "reihenfolge": r["reihenfolge"]}
+                for r in sorted(staende, key=lambda r: r["runde"])]
+    # Aeltere Sessions ohne Rundenstaende: aus den Rundendaten der einzelnen Fahrer
     runden = sorted({r["runde"] for f in fahrer for r in f["runden"]})
     verlauf = []
     for nr in runden:
@@ -278,10 +300,154 @@ def _positionsverlauf(fahrer: list[dict]) -> list[dict]:
         for f in fahrer:
             r = next((r for r in f["runden"] if r["runde"] == nr), None)
             if r and r.get("position"):
-                reihenfolge.append((r["position"], f["name"]))
-        reihenfolge.sort()
-        verlauf.append({"runde": nr, "reihenfolge": [n for _, n in reihenfolge]})
+                reihenfolge.append({"position": r["position"], "idx": f["idx"], "name": f["name"],
+                                    "rueckstand_ms": r.get("rueckstand_fuehrender_ms") or 0,
+                                    "reifen": r.get("reifen"), "in_box": bool(r.get("box"))})
+        reihenfolge.sort(key=lambda e: e["position"])
+        verlauf.append({"runde": nr, "zeit": None, "reihenfolge": reihenfolge})
     return verlauf
+
+
+def kuerzel(namen: list[str]) -> dict[str, str]:
+    """Eindeutige Drei-Buchstaben-Kuerzel (bei gleichem Anfang laenger)."""
+    ergebnis: dict[str, str] = {}
+    for name in namen:
+        laenge = 3
+        while True:
+            k_ = name[:laenge].upper()
+            if k_ not in ergebnis.values() or laenge >= len(name):
+                ergebnis[name] = k_
+                break
+            laenge += 1
+    return ergebnis
+
+
+# --------------------------------------------------------------------------
+# Qualifying gesamt (Q1 + Q2 + Q3 in einer Datei)
+# --------------------------------------------------------------------------
+GRUPPEN = {
+    "qualifying": {"typen": (5, 6, 7), "name": "Qualifying", "letzter": 7},
+    "sprint_shootout": {"typen": (10, 11, 12), "name": "Sprint-Shootout", "letzter": 12},
+}
+
+
+def quali_gruppe(session_typ: int) -> str | None:
+    """"qualifying" (Q1-Q3), "sprint_shootout" (SQ1-SQ3) oder None (kein mehrteiliges Qualifying)."""
+    for name, g in GRUPPEN.items():
+        if session_typ in g["typen"]:
+            return name
+    return None
+
+
+def _endergebnis(teile: list[dict]) -> list[dict]:
+    """Startaufstellung aus allen Teilen: Q3-Fahrer vorn, dann die in Q2 und die in Q1 Ausgeschiedenen."""
+    liste: list[dict] = []
+    gesehen: set[int] = set()
+
+    def aufnehmen(teil_bericht: dict, e: dict, ausgeschieden: bool) -> None:
+        if e["idx"] in gesehen:
+            return
+        gesehen.add(e["idx"])
+        bestzeit = teil_bericht["ergebnis"][0]["beste_runde_ms"] if teil_bericht["ergebnis"] else 0
+        liste.append({
+            "position": len(liste) + 1, "idx": e["idx"], "name": e["name"], "team": e["team"],
+            "startnummer": e["startnummer"], "ist_spieler": e["ist_spieler"], "mensch": e["mensch"],
+            "teil": teil_bericht["session"]["quali_teil"],
+            "ausgeschieden_in": teil_bericht["session"]["quali_teil"] if ausgeschieden else "",
+            "beste_runde_ms": e["beste_runde_ms"],
+            "rueckstand_im_teil_ms": e["rueckstand_p1_ms"] if e["beste_runde_ms"] else 0,
+        })
+
+    # Wer durfte in welchem Teil mitfahren? (Q1: alle; danach nur, wer vorher "weiter" war.)
+    zugelassen: list[set[int] | None] = [None]
+    for t in teile[:-1]:
+        vorher = zugelassen[-1]
+        zugelassen.append({e["idx"] for e in t["ergebnis"]
+                           if e.get("weiter") and (vorher is None or e["idx"] in vorher)})
+    letzter = teile[-1]
+    for e in letzter["ergebnis"]:
+        if zugelassen[-1] is None or e["idx"] in zugelassen[-1]:
+            aufnehmen(letzter, e, False)
+    for i in range(len(teile) - 2, -1, -1):
+        for e in teile[i]["ergebnis"]:
+            if e.get("weiter") is False and (zugelassen[i] is None or e["idx"] in zugelassen[i]):
+                aufnehmen(teile[i], e, True)
+    # Fahrer, die in keinem Teil sauber zugeordnet werden konnten: hinten anhaengen
+    for t in reversed(teile):
+        for e in t["ergebnis"]:
+            aufnehmen(t, e, t is not letzter)
+    return liste
+
+
+def gesamt_bauen(daten_teile: list[dict], erstellt: str | None = None) -> dict:
+    """Ein Bericht fuer alle Qualifying-Teile (Daten je Teil wie bei `bericht_bauen`)."""
+    teile = sorted((bericht_bauen(d, erstellt) for d in daten_teile),
+                   key=lambda b: b["session"]["typ"])
+    erster = teile[0]["session"]
+    gruppe = quali_gruppe(erster["typ"]) or "qualifying"
+    g = GRUPPEN[gruppe]
+    return {
+        "schema": SCHEMA,
+        "version": VERSION,
+        "art": "quali_gesamt",
+        "erstellt": erstellt or datetime.now().isoformat(timespec="seconds"),
+        "session": {
+            "typ_name": f"{g['name']} gesamt",
+            "art": gruppe,
+            "ist_rennen": False, "ist_sprint": False, "ist_quali": True,
+            "strecke": erster["strecke"], "saison_id": erster["saison_id"],
+            "wochenende_id": erster["wochenende_id"],
+            "teile": [t["session"]["quali_teil"] for t in teile],
+            "abgeschlossen": teile[-1]["session"]["typ"] == g["letzter"] and teile[-1]["session"]["beendet"],
+            "spieler": erster["spieler"],
+        },
+        "endergebnis": _endergebnis(teile),
+        "teile": teile,
+    }
+
+
+def gesamt_text(g: dict) -> str:
+    s = g["session"]
+    z: list[str] = []
+    kopf = f"{s['typ_name']} - {s['strecke']}"
+    z.append(kopf.upper())
+    z.append("=" * len(kopf))
+    if s.get("spieler"):
+        z.append(f"Fahrer: {s['spieler']}")
+    z.append(f"Erstellt: {g['erstellt'].replace('T', ' ')}")
+    z.append("Teile: " + ", ".join(s["teile"])
+             + ("" if s["abgeschlossen"] else "  (noch nicht abgeschlossen, vorläufiger Stand)"))
+    z.append("")
+    z.append("Endergebnis (Startaufstellung)")
+    z.append("------------------------------")
+    z.append(f"  {'Pl':>2}  {'Fahrer':<14} {'Team':<14} {'Teil':<5} {'Zeit':<9} {'auf P1 im Teil':<14}")
+    vorher = None
+    for e in g["endergebnis"]:
+        if vorher is not None and e["teil"] != vorher:
+            z.append("  " + "- " * 22 + f"ab hier {e['teil']}")
+        vorher = e["teil"]
+        mark = "  <-- du" if e["ist_spieler"] else ("  <-- Mitspieler" if e["mensch"] else "")
+        z.append(f"  {e['position']:>2}  {e['name']:<14} {e['team']:<14} {e['teil']:<5} "
+                 f"{zeit_text(e['beste_runde_ms']):<9} "
+                 f"{abstand_text(e['rueckstand_im_teil_ms']) if e['position'] > 1 and e['rueckstand_im_teil_ms'] else '':<14}{mark}")
+    for teil in g["teile"]:
+        z.append("")
+        z.append("")
+        z.append("#" * 72)
+        z.append(f"# {teil['session']['typ_name']}")
+        z.append("#" * 72)
+        z.append(bericht_text(teil))
+    return "\n".join(z)
+
+
+def gesamt_dateiname(g: dict, endung: str) -> str:
+    s = g["session"]
+    datum = g["erstellt"][:10]
+    name = f"{datum}_{s['typ_name']}_{s['strecke'] or ''}"
+    for alt, neu in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("Ä", "Ae"), ("Ö", "Oe"), ("Ü", "Ue"), ("ß", "ss")):
+        name = name.replace(alt, neu)
+    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^A-Za-z0-9\-]+", "_", name).strip("_") + "." + endung
 
 
 # --------------------------------------------------------------------------
@@ -365,7 +531,7 @@ def bericht_text(b: dict) -> str:
                         zusatz += "  in der Box"
                 z.append(f"    {r['position']:>2}. {r['name']:<14} {zusatz}")
 
-    if b.get("positionsverlauf"):
+    if b.get("positionsverlauf") is not None and not s["ist_quali"]:
         _text_verlauf(b, titel, z)
 
     # --- Reifen
@@ -467,16 +633,24 @@ def _text_quali(b: dict, titel, z: list[str]) -> None:
 
 def _text_verlauf(b: dict, titel, z: list[str]) -> None:
     verlauf = b["positionsverlauf"]
-    if len(verlauf) < 2:
+    if not verlauf:
         return
-    schritt = 1 if len(verlauf) <= 24 else 5
-    nummern = [v["runde"] for v in verlauf if v["runde"] % schritt == 0 or v is verlauf[-1]]
-    nach_runde = {v["runde"]: {n: i for i, n in enumerate(v["reihenfolge"], start=1)} for v in verlauf}
-    titel("Positionen nach Runden")
-    z.append("  " + " " * 15 + " ".join(f"{n:>3}" for n in nummern))
-    for f in sorted(b["fahrer"], key=lambda f: f["position"]):
-        zeile = [str(nach_runde[n].get(f["name"], "")).rjust(3) for n in nummern]
-        z.append(f"  {f['name']:<15}" + " ".join(zeile))
+    namen = []
+    for v in verlauf:
+        for e in v["reihenfolge"]:
+            if e["name"] not in namen:
+                namen.append(e["name"])
+    kurz = kuerzel(namen)
+    titel("Reihenfolge nach jeder Runde")
+    z.append("  (Platz Kürzel, von vorn nach hinten; * = in der Box)")
+    z.append("  " + ", ".join(f"{kurz[n]} = {n}" for n in namen))
+    for v in verlauf:
+        zeile = " ".join(
+            f"{e['position']}.{kurz[e['name']]}{'*' if e.get('in_box') else ''}"
+            + ("(aus)" if e.get("ausgefallen") else "")
+            for e in v["reihenfolge"])
+        z.append("")
+        z.append(f"  Runde {v['runde']:>2}: {zeile}")
 
 
 # --------------------------------------------------------------------------
@@ -487,12 +661,28 @@ def dateiname(b: dict, endung: str) -> str:
     stempel = (s.get("begonnen") or b["erstellt"])[:19].replace("T", "_").replace(":", "-")
     teile = [stempel, s.get("typ_name") or "Session", s.get("strecke") or ""]
     name = "_".join(t for t in teile if t)
-    name = re.sub(r"[^\w\-]+", "_", name, flags=re.UNICODE).strip("_")
+    for alt, neu in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("Ä", "Ae"), ("Ö", "Oe"), ("Ü", "Ue"), ("ß", "ss")):
+        name = name.replace(alt, neu)
+    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
+    name = re.sub(r"[^A-Za-z0-9\-]+", "_", name).strip("_")
     return f"{name}.{endung}"
 
 
 def json_text(b: dict) -> str:
     return json.dumps(b, ensure_ascii=False, indent=1)
+
+
+def exportieren_gesamt(daten_teile: list[dict], ordner: Path | str) -> dict[str, str]:
+    """Schreibt den Gesamtbericht (alle Qualifying-Teile) als Text und JSON."""
+    g = gesamt_bauen(daten_teile)
+    ordner = Path(ordner)
+    ordner.mkdir(parents=True, exist_ok=True)
+    pfade = {}
+    for endung, inhalt in (("txt", gesamt_text(g)), ("json", json_text(g))):
+        pfad = ordner / gesamt_dateiname(g, endung)
+        pfad.write_text(inhalt, encoding="utf-8")
+        pfade[endung] = str(pfad)
+    return pfade
 
 
 def exportieren(daten: dict, ordner: Path | str) -> dict[str, str]:

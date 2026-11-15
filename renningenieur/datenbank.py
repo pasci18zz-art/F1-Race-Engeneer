@@ -106,12 +106,20 @@ CREATE TABLE IF NOT EXISTS momentaufnahmen (
     daten TEXT,  -- Reihenfolge als JSON
     PRIMARY KEY (session_id, nr)
 );
+CREATE TABLE IF NOT EXISTS rundenstaende (
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    runde INTEGER NOT NULL,
+    zeit REAL,
+    daten TEXT,  -- Reihenfolge nach dieser Runde als JSON
+    PRIMARY KEY (session_id, runde)
+);
 CREATE INDEX IF NOT EXISTS sessions_saison ON sessions(saison_id, begonnen);
 """
 
 
 # Spalten, die spaeter dazukamen. Eine aeltere Datenbank-Datei bekommt sie beim Start.
 NEUE_SPALTEN = {
+    "sessions": [("ist_sprint", "INTEGER")],
     "teilnehmer": [
         ("beste_runde_nr", "INTEGER"),
         ("ausfall_runde", "INTEGER"),
@@ -222,14 +230,14 @@ class Datenbank:
                     """UPDATE sessions SET saison_id=?, wochenende_id=?, session_link_id=?,
                        strecke_id=?, strecke=?, session_typ=?, typ_name=?, ist_rennen=?,
                        runden_gesamt=?, runden_gefahren=?, aktualisiert=?, beendet=?,
-                       spieler_idx=?, rote_flaggen=?, packet_format=? WHERE id=?""",
+                       spieler_idx=?, rote_flaggen=?, packet_format=?, ist_sprint=? WHERE id=?""",
                     (s["saison_id"], s["wochenende_id"], s["session_link_id"], s["strecke_id"],
                      s["strecke"], s["session_typ"], s["typ_name"], int(s["ist_rennen"]),
                      s["runden_gesamt"], s["runde"], jetzt, int(s["beendet"]), s["spieler_idx"],
-                     s["rote_flaggen_anzahl"], s["packet_format"], sid),
+                     s["rote_flaggen_anzahl"], s["packet_format"], int(bool(s.get("ist_sprint"))), sid),
                 )
                 for tabelle in ("teilnehmer", "stints", "boxenstopps", "wetter", "runden",
-                                "ereignisse", "momentaufnahmen"):
+                                "ereignisse", "momentaufnahmen", "rundenstaende"):
                     con.execute(f"DELETE FROM {tabelle} WHERE session_id = ?", (sid,))
                 ausfall_platz = {e["idx"]: e["position"] for e in d.get("ausfaelle", [])}
                 for a in d["autos"]:
@@ -281,6 +289,11 @@ class Datenbank:
                     [(sid, n, m["zeit"], m["runde"], m["grund"], m["text"],
                       json.dumps(m["reihenfolge"], ensure_ascii=False))
                      for n, m in enumerate(d.get("momentaufnahmen", []), 1)],
+                )
+                con.executemany(
+                    "INSERT INTO rundenstaende VALUES (?,?,?,?)",
+                    [(sid, r["runde"], r["zeit"], json.dumps(r["reihenfolge"], ensure_ascii=False))
+                     for r in d.get("rundenstaende", [])],
                 )
                 con.executemany(
                     "INSERT INTO ereignisse VALUES (?,?,?,?,?,?,?)",
@@ -358,6 +371,7 @@ class Datenbank:
             session["runde"] = session["runden_gefahren"]
             session["ist_rennen"] = bool(session["ist_rennen"])
             session["beendet"] = bool(session["beendet"])
+            session["ist_sprint"] = bool(session.get("ist_sprint"))
             typ = session["session_typ"] or 0
             session["ist_quali"] = k.ist_quali(typ)
             session["quali_teil"] = k.quali_teil(typ)
@@ -378,6 +392,10 @@ class Datenbank:
             for m in alle("momentaufnahmen", "nr"):
                 m["reihenfolge"] = json.loads(m.pop("daten") or "[]")
                 momentaufnahmen.append(m)
+            rundenstaende = []
+            for r in alle("rundenstaende", "runde"):
+                r["reihenfolge"] = json.loads(r.pop("daten") or "[]")
+                rundenstaende.append(r)
             return {
                 "aktiv": True,
                 "gespeichert": True,
@@ -386,10 +404,36 @@ class Datenbank:
                 "ereignisse": alle("ereignisse", "nr"),
                 "ausfaelle": ausfaelle,
                 "momentaufnahmen": momentaufnahmen,
+                "rundenstaende": rundenstaende,
                 "autos": autos,
             }
         finally:
             con.close()
+
+    def wochenende_info(self, saison_id: int, wochenende_id: int) -> dict:
+        """Was an diesem Rennwochenende schon gefahren wurde (fuer die Sprint-Erkennung)."""
+        con = _verbinden(self.pfad)
+        try:
+            zeilen = con.execute(
+                "SELECT session_typ, ist_rennen, beendet FROM sessions "
+                "WHERE saison_id = ? AND wochenende_id = ?", (saison_id, wochenende_id)).fetchall()
+        finally:
+            con.close()
+        return {"shootout": any(k.ist_shootout(z["session_typ"] or 0) for z in zeilen),
+                "rennen": sum(1 for z in zeilen if z["ist_rennen"] and z["beendet"])}
+
+    def wochenende_sessions(self, saison_id: int, wochenende_id: int, typen: tuple) -> dict[int, int]:
+        """Session-Typ -> Nummer der neuesten gespeicherten Session dieses Wochenendes."""
+        con = _verbinden(self.pfad)
+        try:
+            marken = ",".join("?" * len(typen))
+            zeilen = con.execute(
+                f"SELECT session_typ, MAX(id) AS id FROM sessions WHERE saison_id = ? AND "
+                f"wochenende_id = ? AND session_typ IN ({marken}) GROUP BY session_typ",
+                (saison_id, wochenende_id, *typen)).fetchall()
+        finally:
+            con.close()
+        return {z["session_typ"]: z["id"] for z in zeilen}
 
     def saison_umbenennen(self, saison_id: int, name: str) -> None:
         con = _verbinden(self.pfad)

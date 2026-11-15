@@ -13,6 +13,7 @@ Seiten und Schnittstellen:
     /api/info            Einstellungen fuer die Mikrofon-Taste
     /api/wendepunkte     Reihenfolge bei Start, Safety Car, roter Flagge ... (Live)
     /api/bericht?id=3&format=txt|json[&download=1]   Bericht einer gespeicherten Session
+    ...&gesamt=1   bei Qualifying: Q1, Q2 und Q3 zusammen
     /api/bericht?live=1&format=txt|json[&download=1] Bericht der laufenden Session
     /ca.crt              Zertifizierungsstelle zum Installieren am Tablet
     POST /api/frage      {"text": "..."}  Frage stellen, Antwort wird auch gesprochen
@@ -219,12 +220,22 @@ class Webserver:
                 if not daten:
                     self._json({"ok": False, "fehler": "Keine Daten für den Bericht."}, 404)
                     return
-                b = bericht.bericht_bauen(daten)
+                gesamt = bool(q.get("gesamt")) and bericht.quali_gruppe(int(daten["session"].get("session_typ") or 0))
+                if gesamt:
+                    b = bericht.gesamt_bauen(kern.quali_teile(daten))
+                else:
+                    b = bericht.bericht_bauen(daten)
                 json_format = q.get("format", ["txt"])[0] == "json"
-                body = bericht.json_text(b) if json_format else bericht.bericht_text(b)
+                if json_format:
+                    body = bericht.json_text(b)
+                else:
+                    body = bericht.gesamt_text(b) if gesamt else bericht.bericht_text(b)
                 endung = "json" if json_format else "txt"
                 typ = "application/json" if json_format else "text/plain"
-                name = bericht.dateiname(b, endung) if q.get("download") else None
+                if q.get("download"):
+                    name = bericht.gesamt_dateiname(b, endung) if gesamt else bericht.dateiname(b, endung)
+                else:
+                    name = None
                 self._bytes(body.encode("utf-8"), f"{typ}; charset=utf-8", name)
 
             def do_GET(self) -> None:

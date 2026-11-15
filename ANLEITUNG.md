@@ -540,12 +540,35 @@ testen.
    `2025-06-01_20-15-33_Rennen_Monza.txt` und `….json`. Abschalten oder auch
    Trainings speichern: `config.toml`, Abschnitt `[export]`.
 2. **Von Hand am Tablet:** auf der Seite (Live oder Rückblick, ganz unten) im
-   Block „Bericht“:
-   - **Bericht anzeigen** – der Text erscheint zum Lesen,
-   - **Text kopieren** – Zwischenablage, dann irgendwo einfügen
-     (klappt der Knopf nicht, das Textfeld lange antippen → „Alles auswählen“),
-   - **Als Textdatei / JSON-Datei speichern** – landet im Download-Ordner des
-     Tablets.
+   Block „Bericht“ gibt es zwei Zeilen, **Text (zum Lesen)** und **JSON (für die
+   Manager-App)**, jeweils mit drei Knöpfen:
+   - **Anzeigen** – der Inhalt erscheint in einem Feld auf der Seite,
+   - **Kopieren** – Zwischenablage, dann irgendwo einfügen
+     (klappt der Knopf nicht, steht der Text im Feld: lange antippen → „Alles
+     auswählen“ → „Kopieren“),
+   - **Speichern** – die Datei landet im Ordner „Downloads“ des Tablets. Die Seite
+     meldet darunter, wie die Datei heißt.
+   Geht das Speichern bei dir nicht, nimm „Anzeigen“ oder „Kopieren“, die klappen
+   immer. Am PC findest du dieselben Dateien im Ordner `exporte`. Eine
+   `.json`-Datei öffnet Windows nicht von selbst mit einem Programm: Rechtsklick →
+   „Öffnen mit“ → „Editor“.
+   - **Qualifying:** Beim Qualifying steht darüber ein Haken **„Alle
+     Qualifying-Teile (Q1, Q2, Q3) in einer Datei“** (standardmäßig gesetzt).
+     Dann enthält die Datei oben die **Startaufstellung** aus allen drei Teilen und
+     darunter Q1, Q2 und Q3. Du musst also nicht mehr jeden Teil einzeln
+     übertragen. Dieselbe Datei legt das Programm nach jedem Qualifying-Teil
+     automatisch in `exporte` ab (`…_Qualifying_gesamt_….json`), nach Q3 ist sie
+     vollständig.
+   - **Sprint:** Ein Sprintrennen heißt in Seite, Bericht und Dateiname
+     **„Sprintrennen“**. Das Spiel meldet es nur als „Rennen“, deshalb erkennt das
+     Programm es selbst: Gab es an dem Wochenende ein Sprint-Qualifying
+     (Sprint-Shootout), ist das erste Rennen der Sprint. Klappt das bei dir nicht,
+     trag in `config.toml` unter `[sprint]` bei `max_runden` die Rundenzahl ein, bis
+     zu der ein Rennen als Sprint gelten soll (z. B. `10`).
+   - **Reihenfolge nach jeder Runde:** In jedem Rennen und Sprint wird nach
+     jeder Runde festgehalten, wer auf welchem Platz liegt (mit Abstand und
+     Reifen). Im Textbericht steht das unter „Reihenfolge nach jeder Runde“, in
+     der JSON-Datei unter `positionsverlauf`.
 3. **Inhalt:** Wetterverlauf, Endergebnis bzw. Zeitenliste, schnellste Runde,
    Ausfälle mit Runde und Grund, Safety Car, rote und gelbe Flaggen, Strafen,
    Reihenfolge zu den wichtigen Zeitpunkten, Positionen nach jeder Runde,

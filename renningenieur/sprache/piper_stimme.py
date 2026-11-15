@@ -68,11 +68,12 @@ def funkeffekt(audio, rate: int):
     return np.concatenate([x, rauschen]).astype(np.float32)
 
 
-def _ausgabegeraet(name: str):
+def _ausgabegeraet(name: str, sd=None):
     """Teil des Geraetenamens -> sounddevice-Nummer (None = Standard)."""
     if not name:
         return None
-    import sounddevice as sd
+    if sd is None:
+        import sounddevice as sd
 
     for i, d in enumerate(sd.query_devices()):
         if d["max_output_channels"] > 0 and name.lower() in d["name"].lower():
@@ -81,8 +82,44 @@ def _ausgabegeraet(name: str):
     return None
 
 
+def _portaudio_neu_starten(sd) -> None:
+    """Liest die Geraeteliste neu ein (noetig, wenn ein Bluetooth-Kopfhoerer neu verbunden wurde)."""
+    try:
+        sd._terminate()
+        sd._initialize()
+    except Exception:
+        log.exception("Audio-System konnte nicht neu gestartet werden")
+
+
+def _mit_sounddevice(sd, audio, rate: int, geraet) -> bool:
+    """Spielt ab. Bei einem ungueltigen Geraet: Geraeteliste neu lesen, dann Standardgeraet."""
+    for neu_lesen in (False, True):
+        if neu_lesen:
+            _portaudio_neu_starten(sd)
+        nummer = _ausgabegeraet(geraet, sd) if isinstance(geraet, str) else geraet
+        try:
+            sd.play(audio, rate, device=nummer, blocking=True)
+            return True
+        except sd.PortAudioError as e:
+            log.warning("Ausgabegerät %r nicht nutzbar (%s)%s", geraet, e,
+                        "" if neu_lesen else " - lese die Geräteliste neu ein")
+    if geraet:
+        try:
+            sd.play(audio, rate, device=None, blocking=True)
+            log.warning("Ausgabe über das Windows-Standardgerät statt über %r", geraet)
+            return True
+        except sd.PortAudioError as e:
+            log.warning("Auch das Standardgerät geht nicht (%s)", e)
+    return False
+
+
 def abspielen(audio, rate: int, geraet=None) -> None:
-    """Spielt Audio (float -1..1) ab und wartet, bis es fertig ist."""
+    """Spielt Audio (float -1..1) ab und wartet, bis es fertig ist.
+
+    `geraet` ist ein Teil des Geraetenamens (oder None = Standardgeraet). Der Name
+    wird bei jedem Abspielen neu gesucht, damit ein neu verbundener Kopfhoerer
+    (neue Geraetenummer) kein Problem ist.
+    """
     import numpy as np
 
     # Kurze Stille vorne: Bluetooth-Kopfhoerer wachen sonst erst mitten im
@@ -90,11 +127,10 @@ def abspielen(audio, rate: int, geraet=None) -> None:
     audio = np.concatenate([np.zeros(int(rate * 0.25), np.float32), audio])
     try:
         import sounddevice as sd
-
-        sd.play(audio, rate, device=geraet, blocking=True)
-        return
     except ImportError:
-        pass
+        sd = None
+    if sd is not None and _mit_sounddevice(sd, audio, rate, geraet):
+        return
     if sys.platform == "win32":
         import winsound
 
@@ -106,7 +142,7 @@ def abspielen(audio, rate: int, geraet=None) -> None:
             w.writeframes((np.clip(audio, -1, 1) * 32767).astype("<i2").tobytes())
         winsound.PlaySound(puffer.getvalue(), winsound.SND_MEMORY)
     else:
-        raise RuntimeError("Zum Abspielen fehlt sounddevice (pip install sounddevice).")
+        raise RuntimeError("Abspielen nicht möglich (sounddevice fehlt oder Gerät ungültig).")
 
 
 # --------------------------------------------------------------------------
@@ -126,7 +162,7 @@ class PiperStimme:
         self.rate = self._stimme.config.sample_rate
         self.funk = funk
         self._spieler = spieler
-        self._geraet = _ausgabegeraet(geraet) if geraet and spieler is abspielen else None
+        self._geraet = geraet or None  # Name; wird bei jedem Abspielen neu gesucht
         self._lock = threading.Lock()
         log.info("Stimme: Piper %s%s", Path(modell).stem, " mit Funk-Effekt" if funk else "")
 

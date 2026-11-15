@@ -288,6 +288,9 @@ function liveZeichnen(d) {
     return;
   }
   const s = d.session;
+  const mehrteilig = !!(s.ist_quali && [5, 6, 7, 10, 11, 12].includes(s.session_typ));
+  berichtQuali.lb = mehrteilig;
+  $("lb-gesamt-zeile").hidden = !mehrteilig;
   $("titel").textContent = `${s.strecke} · ${s.typ_name}`;
   $("untertitel").textContent = s.ist_rennen
     ? `Runde ${Math.min(s.runde, s.runden_gesamt)} von ${s.runden_gesamt} · ${uhr(s.zeit)}`
@@ -538,7 +541,7 @@ async function sessionOeffnen(id) {
   ausfaelleZeichnen($("rb-ausfaelle"), d.ausfaelle);
   wendepunkteZeichnen($("rb-wendepunkte"), d.momentaufnahmen);
   ereignisliste($("rb-ereignisse"), d.ereignisse);
-  berichtLinks("rb", `/api/bericht?id=${id}`);
+  berichtLinks("rb", `/api/bericht?id=${id}`, !!(s.ist_quali && [5, 6, 7, 10, 11, 12].includes(s.session_typ)));
   window.scrollTo(0, 0);
 }
 
@@ -569,53 +572,89 @@ $("rb-loeschen").addEventListener("click", async () => {
 /* ------------------------------------------------------------------ */
 /* Bericht: anzeigen, kopieren, als Datei speichern                    */
 /* ------------------------------------------------------------------ */
-const berichtBasis = { lb: "/api/bericht?live=1" };
+const berichtBasis = { lb: "/api/bericht?live=1", rb: null };
+const berichtQuali = { lb: false, rb: false };
 
-function berichtLinks(vorsilbe, basis) {
+function berichtLinks(vorsilbe, basis, istQuali) {
   berichtBasis[vorsilbe] = basis;
-  $(`${vorsilbe}-txt`).href = `${basis}&format=txt&download=1`;
-  $(`${vorsilbe}-json`).href = `${basis}&format=json&download=1`;
+  berichtQuali[vorsilbe] = !!istQuali;
+  $(`${vorsilbe}-gesamt-zeile`).hidden = !istQuali;
   $(`${vorsilbe}-text`).hidden = true;
   $(`${vorsilbe}-meldung`).textContent = "";
 }
 
-async function berichtHolen(vorsilbe) {
-  const antwort = await fetch(`${berichtBasis[vorsilbe]}&format=txt`, { cache: "no-store" });
-  if (!antwort.ok) throw new Error("kein Bericht");
+function berichtUrl(vorsilbe, format, download) {
+  let url = `${berichtBasis[vorsilbe]}&format=${format}`;
+  if (berichtQuali[vorsilbe] && $(`${vorsilbe}-gesamt`).checked) url += "&gesamt=1";
+  return download ? url + "&download=1" : url;
+}
+
+async function berichtHolen(vorsilbe, format) {
+  const antwort = await fetch(berichtUrl(vorsilbe, format, false), { cache: "no-store" });
+  if (!antwort.ok) throw new Error(antwort.status === 404 ? "Dafür gibt es noch keine Daten." : `Fehler ${antwort.status}`);
   return antwort.text();
 }
 
-function berichtVerdrahten(vorsilbe) {
+/* Datei aus dem Speicher der Seite erzeugen. So braucht der Download keine zweite Verbindung
+   (die bei dem selbst erzeugten Zertifikat sonst von Chrome blockiert werden kann). */
+async function berichtSpeichern(vorsilbe, format) {
+  const antwort = await fetch(berichtUrl(vorsilbe, format, true), { cache: "no-store" });
+  if (!antwort.ok) throw new Error(antwort.status === 404 ? "Dafür gibt es noch keine Daten." : `Fehler ${antwort.status}`);
+  const text = await antwort.text();
+  const kopf = antwort.headers.get("Content-Disposition") || "";
+  const name = (kopf.match(/filename="([^"]+)"/) || [])[1] || `bericht.${format}`;
+  const blob = new Blob([text], { type: format === "json" ? "application/json" : "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return name;
+}
+
+function berichtTextfeld(vorsilbe, text) {
+  const feld = $(`${vorsilbe}-text`);
+  feld.value = text; feld.hidden = false; feld.rows = 24;
+  return feld;
+}
+
+document.addEventListener("click", async (e) => {
+  const knopf = e.target.closest("[data-bericht]");
+  if (!knopf) return;
+  const vorsilbe = knopf.dataset.bericht, aktion = knopf.dataset.aktion, format = knopf.dataset.format;
   const meldung = (text) => { $(`${vorsilbe}-meldung`).textContent = text; };
-  $(`${vorsilbe}-anzeigen`).addEventListener("click", async () => {
-    const feld = $(`${vorsilbe}-text`);
-    if (!feld.hidden) { feld.hidden = true; meldung(""); return; }
-    try {
-      feld.value = await berichtHolen(vorsilbe);
-      feld.hidden = false;
-      feld.rows = 24;
-      meldung("Zum Kopieren das Feld lange antippen und „Alles auswählen“ wählen, oder „Text kopieren“.");
-    } catch (e) { meldung("Dafür gibt es noch keine Daten."); }
-  });
-  $(`${vorsilbe}-kopieren`).addEventListener("click", async () => {
-    try {
-      const text = await berichtHolen(vorsilbe);
+  if (!berichtBasis[vorsilbe]) { meldung("Zuerst eine Session öffnen."); return; }
+  meldung("Einen Moment …");
+  try {
+    if (aktion === "zeigen") {
+      const feld = $(`${vorsilbe}-text`);
+      if (!feld.hidden && feld.dataset.format === format) { feld.hidden = true; meldung(""); return; }
+      berichtTextfeld(vorsilbe, await berichtHolen(vorsilbe, format)).dataset.format = format;
+      meldung("Zum Kopieren das Feld lange antippen und „Alles auswählen“ wählen.");
+    } else if (aktion === "kopieren") {
+      const text = await berichtHolen(vorsilbe, format);
       let kopiert = false;
       if (navigator.clipboard && window.isSecureContext) {
-        try { await navigator.clipboard.writeText(text); kopiert = true; } catch (e) { /* Ersatz unten */ }
+        try { await navigator.clipboard.writeText(text); kopiert = true; } catch (err) { /* Ersatz unten */ }
       }
       if (!kopiert) {
-        const feld = $(`${vorsilbe}-text`);
-        feld.value = text; feld.hidden = false; feld.rows = 24;
+        const feld = berichtTextfeld(vorsilbe, text);
+        feld.dataset.format = format;
         feld.focus(); feld.select();
-        kopiert = document.execCommand && document.execCommand("copy");
+        kopiert = !!(document.execCommand && document.execCommand("copy"));
       }
-      meldung(kopiert ? "Bericht kopiert. Jetzt irgendwo einfügen." : "Das Kopieren ging nicht. Markiere den Text im Feld und kopiere ihn von Hand.");
-    } catch (e) { meldung("Dafür gibt es noch keine Daten."); }
-  });
-}
-berichtVerdrahten("lb");
-berichtVerdrahten("rb");
+      meldung(kopiert ? "Kopiert. Jetzt irgendwo einfügen."
+        : "Das Kopieren ging nicht. Markiere den Text im Feld und kopiere ihn von Hand.");
+    } else {
+      const name = await berichtSpeichern(vorsilbe, format);
+      meldung(`Gespeichert als ${name} (Ordner „Downloads“ am Tablet). Wird nichts gespeichert: „Anzeigen“ und „Kopieren“ gehen immer.`);
+    }
+  } catch (err) {
+    meldung(String(err.message || err));
+  }
+});
 
 /* ------------------------------------------------------------------ */
 /* Vergleich                                                           */

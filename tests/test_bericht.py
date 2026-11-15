@@ -216,7 +216,7 @@ class TestBericht(unittest.TestCase):
         cls.text = bericht.bericht_text(cls.b)
 
     def test_kopf_und_schema(self):
-        self.assertEqual((self.b["schema"], self.b["version"]), ("renningenieur.bericht", 1))
+        self.assertEqual((self.b["schema"], self.b["version"]), ("renningenieur.bericht", 2))
         s = self.b["session"]
         self.assertEqual((s["typ_name"], s["strecke"], s["ist_rennen"], s["runden_gefahren"]),
                          ("Rennen", "Monza", True, 12))
@@ -254,14 +254,16 @@ class TestBericht(unittest.TestCase):
     def test_wetter_und_verlauf(self):
         self.assertTrue(self.b["wetter"]["regen"])
         self.assertEqual([w["wetter"] for w in self.b["wetter"]["verlauf"]], [1, 2, 3, 4])
-        self.assertEqual(self.b["positionsverlauf"][0]["runde"], 1)
-        self.assertEqual(len(self.b["positionsverlauf"][-1]["reihenfolge"]), 19)  # Verstappen fehlt
+        self.assertEqual([v["runde"] for v in self.b["positionsverlauf"]], list(range(1, 13)))
+        letzte = self.b["positionsverlauf"][-1]["reihenfolge"]
+        self.assertEqual(len(letzte), 20)  # auch der Ausgefallene steht (hinten) in der Liste
+        self.assertTrue(letzte[-1]["ausgefallen"])
 
     def test_text_enthaelt_alles_wichtige(self):
         for teil in ("RENNEN - MONZA", "Wetter", "Endergebnis", "Schnellste Runde", "Ausfälle",
                      "Verstappen (Red Bull) - mechanisches Problem", "Gelbe Flagge in Sektor 2",
                      "Safety Car", "Rote Flagge", "Reihenfolge zu wichtigen Zeitpunkten",
-                     "Positionen nach Runden", "Reifen und Verschleiß", "Rundenzeiten",
+                     "Reihenfolge nach jeder Runde", "Reifen und Verschleiß", "Rundenzeiten",
                      "starker Regen", "Zeitstrafe für Piastri"):
             self.assertIn(teil, self.text)
 
@@ -353,7 +355,7 @@ class TestBerichtWeb(unittest.TestCase):
 
     def test_seite_enthaelt_neue_bereiche(self):
         html = self.hole("/")[2].decode()
-        for kennung in ("quali-tabelle", "wendepunkte", "lb-anzeigen", "rb-txt"):
+        for kennung in ("quali-tabelle", "wendepunkte", "data-bericht=\"lb\"", "data-bericht=\"rb\"", "rb-gesamt"):
             self.assertIn(kennung, html)
 
 

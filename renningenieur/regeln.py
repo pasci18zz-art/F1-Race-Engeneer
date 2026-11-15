@@ -118,7 +118,7 @@ class Regeln:
         self._rennstart_gemeldet = True
         platz = ich.startplatz or ich.position
         self._sag(
-            "warnung.rennstart",
+            "warnung.rennstart_sprint" if self.z.sprint else "warnung.rennstart",
             HOCH,
             strecke=z.strecke,
             runden=z.runden_gesamt,
