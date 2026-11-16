@@ -46,6 +46,7 @@ In diesem Ordner liegen ab jetzt alle Dateien, von denen unten die Rede ist:
 | `simulation.bat` | Testrennen ohne Spiel |
 | `geraete.bat` | zeigt Mikrofone und Lenkradtasten an |
 | `stimmen.bat` | natürlichere Stimme auswählen (siehe K0) |
+| `aussprache.bat` | Aussprache der Fahrernamen anhören (siehe K0) |
 | `mikrofontest.bat` | Mikrofon und Spracherkennung ausprobieren (siehe N) |
 | `whisper.bat` | genauere Spracherkennung installieren (siehe N) |
 | rote Taste auf der Tablet-Seite | Fragen über das Tablet (siehe O) |
@@ -268,6 +269,19 @@ natürliche Stimmen, die genauso komplett auf deinem PC laufen.
 7. Fertig. `start.bat` starten, ab jetzt spricht die neue Stimme.
 
 Umentscheiden kannst du jederzeit: `stimmen.bat` noch einmal starten.
+
+**Namen falsch ausgesprochen (z. B. „Leckneck“ statt Leclerc)?** Die Stimme liest
+Namen nach deutschen Regeln. Deshalb gibt es in `config.toml` den Abschnitt
+**`[aussprache]`**: links der Name, rechts so geschrieben, wie er klingen soll,
+zum Beispiel `"Leclerc" = "Leklär"`. Mitgeliefert sind die wichtigsten Fahrer und Teams.
+1. **`aussprache.bat`** doppelklicken. Die Stimme spricht alle Namen nacheinander,
+   im Fenster steht, wie jeder geschrieben ist. (Einzelne Namen:
+   `aussprache.bat Leclerc Hamilton` in der Eingabeaufforderung.)
+2. Klingt einer falsch: `config.toml` öffnen, **Strg+F** → `[aussprache]`, die rechte
+   Seite so umschreiben, wie du es hören willst (so, wie man es deutsch
+   ausspricht: „sch“, „ä“, „ss“ …), speichern und `aussprache.bat` noch einmal laufen lassen.
+3. Neue Namen (z. B. dein Kumpel) einfach als neue Zeile darunter schreiben.
+Auf dem Bildschirm und im Bericht bleibt immer der richtige Name.
 Sprechtempo und Lautstärke stehen in `config.toml` unter `[sprachausgabe]`
 (`tempo` von -10 bis 10, `lautstaerke` von 0 bis 100).
 
@@ -368,6 +382,15 @@ auf deinem PC dauert, und stellt `config.toml` um. Danach mit
 
 - Dauert Whisper zu lange, wähle ein kleineres Modell: `whisper.bat base`.
 - Zurück zu Vosk: in `config.toml` bei `[spracherkennung]` `engine = "vosk"`.
+- **Wichtig:** Bei `[spracherkennung]` muss `engine = "whisper"` oder `engine = "auto"`
+  stehen, sonst arbeitet das ungenaue Vosk. Hast du die `config.toml` neu erzeugen
+  lassen, steht dort womöglich `"vosk"`. `"auto"` nimmt Whisper automatisch, wenn es
+  eingerichtet ist. Im Fenster von `start.bat` steht beim Start eine Zeile
+  `Spracherkennung: Whisper small` oder `Spracherkennung: Vosk`.
+- Whisper bekommt die Fahrernamen als Hinweis und versteht auch Verhörer wie
+  „Leckler“, „Le Clerc“ oder „Fair stappen“ als den richtigen Fahrer.
+- Mehr Genauigkeit: ein größeres Modell, `whisper.bat small` oder `whisper.bat medium`
+  (dauert pro Frage länger).
 
 **Kleine Tricks, die immer helfen:**
 - Die Lenkradtaste halten, bis der Satz **ganz zu Ende** ist, erst dann loslassen.
@@ -402,7 +425,7 @@ steht auf dem Tablet. Du brauchst kein Mikrofon am PC.
 **Fragen stellen**
 1. Rote Taste tippen. Sie wird **grün** und pulsiert: „Ich höre zu …“.
 2. Frage sprechen, zum Beispiel „Abstand nach hinten“.
-3. Die Aufnahme endet von selbst, wenn du **2 Sekunden** nichts mehr sagst.
+3. Die Aufnahme endet von selbst, wenn du **1 Sekunde** nichts mehr sagst.
    Willst du früher fertig sein, tippst du die Taste noch einmal.
 4. Die Taste wird kurz gelb („Ich verstehe …“). Dann steht auf dem Tablet, was
    verstanden wurde und was geantwortet wird. Die Antwort kommt zusätzlich in
@@ -413,8 +436,12 @@ Bleibt die Seite aufgerufen, ist das Mikrofon nach einer Frage noch 45
 Sekunden offen. Die nächste Frage startet dann ohne Wartezeit.
 
 **Einstellungen** (`config.toml`, Abschnitt `[tablet]`)
-- `stille_sekunden = 2.0`: so lange Stille beendet die Aufnahme. Wenn dir 2
-  Sekunden zu kurz sind, trag 3 ein.
+- **Pause bis zum Ende der Aufnahme:** am einfachsten auf der Tablet-Seite im
+  Reiter **Live** im Block **Funk** bei „Aufnahme endet nach … Sekunden Pause“
+  (0,7 / 1 / 1,5 / 2 / 3). Das gilt für dieses Tablet und bleibt gespeichert. Im Programm
+  ist **1 Sekunde** voreingestellt; steht in deiner `config.toml` noch
+  `stille_sekunden = 2.0`, wähle am Tablet einmal „1“ oder ändere die Zahl in der
+  Datei. Ist es dir zu knapp (Satz wird mitten drin abgeschnitten), nimm 1,5.
 - `feste_sekunden = 5`: nimmt immer genau 5 Sekunden auf, ohne auf Stille zu
   achten. `0` heißt: auf Stille achten.
 - `max_sekunden = 8`: längste Aufnahme.

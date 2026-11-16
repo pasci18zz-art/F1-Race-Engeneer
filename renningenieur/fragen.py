@@ -182,6 +182,20 @@ BEISPIELE = [
 ]
 
 
+def klang(wort: str) -> str:
+    """Grobe Klangschrift: gleich klingende Schreibweisen ergeben dasselbe ("Leclerc" = "Leckler").
+
+    Gleiche Laute werden zusammengefasst, Selbstlaute (ausser am Anfang) entfallen.
+    """
+    w = norm(wort).replace(" ", "")
+    for alt, neu in (("tsch", "s"), ("sch", "s"), ("ch", "s"), ("ph", "f"), ("ck", "k"), ("qu", "k"),
+                     ("th", "t"), ("dt", "t"), ("c", "k"), ("v", "f"), ("w", "f"), ("z", "s"),
+                     ("y", "i"), ("x", "ks")):
+        w = w.replace(alt, neu)
+    w = re.sub(r"(.)\1+", r"\1", w)
+    return w[:1] + re.sub(r"[aeiouh]", "", w[1:])
+
+
 class Fragen:
     def __init__(self, zustand: Rennzustand, cfg_fahrer: dict, texte: Texte,
                  cfg_strategie: dict | None = None, eigene: EigeneBefehle | None = None):
@@ -336,6 +350,29 @@ class Fragen:
                     if quote > beste_quote:
                         bester, beste_quote = a, quote
         if bester and beste_quote >= 0.82:
+            return bester
+        # Klingt aehnlich ("Leckler", "Le Clerc" -> Leclerc): auch zwei Woerter zusammen pruefen
+        bekannt = self._fragewoerter() - {t for n in namen.values() for t in n.split()}
+        kandidaten_woerter = [w for w in woerter if len(w) >= 3 and w not in bekannt]
+        kandidaten_woerter += [a + b for a, b in zip(woerter, woerter[1:])
+                               if a not in bekannt or b not in bekannt]
+        bester, beste_quote = None, 0.0
+        for a in autos:
+            for teil in namen[a.idx].split():
+                if len(teil) < 4:
+                    continue
+                schluessel = klang(teil)
+                if len(schluessel) < 4:
+                    continue
+                for w in kandidaten_woerter:
+                    kw = klang(w)
+                    if len(kw) < 4:
+                        continue
+                    quote = difflib.SequenceMatcher(None, kw, schluessel).ratio()
+                    if quote >= 0.85 and difflib.SequenceMatcher(None, w, teil).ratio() >= 0.6 \
+                            and quote > beste_quote:
+                        bester, beste_quote = a, quote
+        if bester:
             return bester
         # Teamname: das Auto dieses Teams, das mir am naechsten liegt
         for team_id, team in k.TEAMS.items():
@@ -1014,6 +1051,13 @@ class Fragen:
             return ""
         return self.t.sag("antwort.rundenzeit", letzte=f.rundenzeit(ich.letzte_runde_ms),
                           beste=f.rundenzeit(ich.beste_runde_ms or ich.letzte_runde_ms))
+
+    def _fragewoerter(self) -> set[str]:
+        """Normale Woerter aus Fragen (ohne Namen): die werden nie mit einem Fahrer verwechselt."""
+        if not hasattr(self, "_fragewoerter_cache"):
+            namen = {t for alias in self.aliase for t in alias.split()}
+            self._fragewoerter_cache = {norm(w) for w in self.wortliste()} - namen
+        return self._fragewoerter_cache
 
     # --- Wortliste fuer die Spracherkennung ----------------------------
     def wortliste(self) -> list[str]:

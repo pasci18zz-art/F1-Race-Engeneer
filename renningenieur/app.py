@@ -7,6 +7,7 @@
     python -m renningenieur mikrofontest    Mikrofon und Spracherkennung ausprobieren
     python -m renningenieur whisper         genauere Spracherkennung installieren
     python -m renningenieur stimmen         natuerliche Stimmen anhoeren und auswaehlen
+    python -m renningenieur aussprache      Aussprache der Fahrernamen anhoeren
     python -m renningenieur abspielen X     aufgezeichnete Telemetrie abspielen
     python -m renningenieur pruefen         empfangene Pakete zaehlen und pruefen
 """
@@ -59,7 +60,8 @@ def befehl_start(args) -> int:
         datenbank = Datenbank(str(ordner / cfg["datenbank"]["datei"]))
         datenbank.start()
 
-    kern = Kern(cfg, texte, stimme_erzeugen(cfg["sprachausgabe"], ordner), datenbank, ordner)
+    kern = Kern(cfg, texte, stimme_erzeugen(cfg["sprachausgabe"], ordner, cfg.get("aussprache")),
+                datenbank, ordner)
     kern.funk.start()
 
     aufnahme = Aufnahme(args.aufnahme) if args.aufnahme else None
@@ -262,6 +264,27 @@ def befehl_stimmen(args) -> int:
     return einrichten(ordner, cfg["sprachausgabe"])
 
 
+def befehl_aussprache(args) -> int:
+    """Spricht Namen mit der eingestellten Stimme, damit man die Aussprache pruefen kann."""
+    from .sprache.stimmen import AusspracheStimme, stimme_erzeugen
+
+    ordner = Path(args.ordner).resolve()
+    cfg = konfig.config_laden(ordner, kopieren=True)
+    woerter = cfg.get("aussprache", {})
+    stimme = stimme_erzeugen(cfg["sprachausgabe"], ordner, woerter)
+    umschreiben = stimme.umschreiben if isinstance(stimme, AusspracheStimme) else (lambda t: t)
+    namen = args.namen or list(woerter)
+    print("Die Stimme spricht jetzt diese Namen. Links steht der Name, rechts wie er gesprochen wird.")
+    print("Ändern kannst du das in config.toml im Abschnitt [aussprache].\n")
+    try:
+        for name in namen:
+            print(f"  {name:<16} -> {umschreiben(name)}", flush=True)
+            stimme.sprechen(name + ".")
+    finally:
+        stimme.schliessen()
+    return 0
+
+
 def befehl_mikrofontest(args) -> int:
     from .sprache.mikrofontest import testen
 
@@ -334,6 +357,8 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("modell", help="Sprachmodell für die Erkennung herunterladen")
     sub.add_parser("stimmen", help="natürliche Stimmen laden, anhören und auswählen")
+    s = sub.add_parser("aussprache", help="Aussprache der Fahrernamen anhören")
+    s.add_argument("namen", nargs="*", help="Namen (leer = alle aus [aussprache])")
 
     s = sub.add_parser("mikrofontest", help="Mikrofon und Spracherkennung ausprobieren")
     s.add_argument("--sekunden", type=float, default=5)
@@ -346,7 +371,7 @@ def main(argv: list[str] | None = None) -> int:
     befehle = {
         None: befehl_start, "start": befehl_start, "simulation": befehl_simulation,
         "abspielen": befehl_abspielen, "pruefen": befehl_pruefen,
-        "geraete": befehl_geraete, "modell": befehl_modell, "stimmen": befehl_stimmen,
+        "geraete": befehl_geraete, "modell": befehl_modell, "stimmen": befehl_stimmen, "aussprache": befehl_aussprache,
         "mikrofontest": befehl_mikrofontest, "whisper": befehl_whisper,
     }
     return befehle[args.befehl](args)

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 import subprocess
 import sys
 import threading
@@ -117,7 +118,45 @@ class WindowsStimme:
             self._proc = None
 
 
-def stimme_erzeugen(cfg: dict, ordner: Path | None = None):
+class AusspracheStimme:
+    """Setzt Namen vor dem Sprechen in Klangschrift um ("Leclerc" -> "Leklär").
+
+    Nur die Stimme bekommt die Klangschrift; Bildschirm und Protokoll behalten den echten Namen.
+    """
+
+    def __init__(self, stimme, woerter: dict[str, str]):
+        self._stimme = stimme
+        # Laengste Namen zuerst ("Aston Martin" vor "Martin"). Auch Endungen wie "Leclercs".
+        eintraege = sorted(((alt, neu) for alt, neu in woerter.items() if alt and neu),
+                           key=lambda e: len(e[0]), reverse=True)
+        self._neu = {alt.lower(): neu for alt, neu in eintraege}
+        self._muster = (re.compile(r"(?<!\w)(" + "|".join(re.escape(a) for a, _ in eintraege)
+                                   + r")(s?)(?!\w)", re.IGNORECASE) if eintraege else None)
+
+    def umschreiben(self, text: str) -> str:
+        if not self._muster:
+            return text
+        return self._muster.sub(lambda m: self._neu[m.group(1).lower()] + m.group(2), text)
+
+    def sprechen(self, text: str) -> None:
+        self._stimme.sprechen(self.umschreiben(text))
+
+    def schliessen(self) -> None:
+        self._stimme.schliessen()
+
+    def __getattr__(self, name):  # alles andere (z. B. gesagt) geht an die echte Stimme
+        return getattr(self._stimme, name)
+
+
+def stimme_erzeugen(cfg: dict, ordner: Path | None = None, aussprache: dict | None = None):
+    """Erzeugt die Stimme laut [sprachausgabe] und setzt die Aussprache-Liste davor."""
+    stimme = _stimme_erzeugen(cfg, ordner)
+    if aussprache and not isinstance(stimme, (StummeStimme, KonsolenStimme)):
+        return AusspracheStimme(stimme, aussprache)
+    return stimme
+
+
+def _stimme_erzeugen(cfg: dict, ordner: Path | None = None):
     """Erzeugt die Stimme laut [sprachausgabe] in der config.toml."""
     engine = cfg.get("engine", "windows")
     if engine == "aus":

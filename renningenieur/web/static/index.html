@@ -78,6 +78,11 @@
             <input id="frage-text" type="text" placeholder="Frage eintippen, z. B. „Kommt Regen?“" autocomplete="off">
             <button type="submit">Fragen</button>
           </form>
+          <label class="schalter stille-zeile">Aufnahme endet nach
+            <select id="stille-wahl" aria-label="Pause bis zum Ende der Aufnahme">
+              <option value="0.7">0,7</option><option value="1">1</option><option value="1.5">1,5</option>
+              <option value="2">2</option><option value="3">3</option>
+            </select> Sekunden Pause</label>
           <ul id="funk" class="liste"></ul>
         </div>
         <div class="block">

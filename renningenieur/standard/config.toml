@@ -56,10 +56,11 @@ max_sekunden = 10
 
 [spracherkennung]
 aktiv = true
+# "auto" = Whisper, wenn es installiert ist (whisper.bat), sonst Vosk.
 # "vosk" = klein und schnell, aber ungenau.
 # "whisper" = deutlich genauer, braucht 1 bis 3 Sekunden pro Frage.
-# Umstellen mit whisper.bat.
-engine = "vosk"
+# Einrichten mit whisper.bat.
+engine = "auto"
 # Nur für "whisper": tiny, base, small oder medium
 whisper_modell = "small"
 # Nur für "whisper": so viele Prozessorkerne darf die Erkennung kurz nutzen
@@ -133,6 +134,32 @@ boxenstopp_verlust = 22
 # Bis zu diesem Verschleiß (Prozent) rechnet "Wie lange halten meine Reifen?"
 reifen_grenze = 70
 
+[aussprache]
+# Wie die Stimme Namen ausspricht. Links der Name wie er im Text steht, rechts so
+# geschrieben, wie er klingen soll. Gilt nur für die Stimme, auf dem Bildschirm
+# bleibt der richtige Name. Ausprobieren: aussprache.bat. Eigene Einträge einfach
+# dazuschreiben (z. B. für den Namen deines Kumpels).
+"Leclerc" = "Leklär"
+"Hamilton" = "Hämmilten"
+"Russell" = "Rassel"
+"Stroll" = "Sstrohl"
+"Sainz" = "Ssains"
+"Gasly" = "Gasli"
+"Ocon" = "Okong"
+"Bearman" = "Birman"
+"Lawson" = "Lohsen"
+"Hadjar" = "Adschar"
+"Doohan" = "Duhen"
+"Pérez" = "Peres"
+"Ricciardo" = "Ritschardo"
+"Zhou" = "Dschou"
+"McLaren" = "Mäklaren"
+"Williams" = "Wiljems"
+"Alpine" = "Älpain"
+"Aston Martin" = "Äston Martin"
+"Red Bull" = "Redd Bull"
+"Racing Bulls" = "Reising Bulls"
+
 [fahrer]
 # Name deines Mitspielers, wie er im Spiel angezeigt wird. Leer = automatisch
 # (der andere menschliche Fahrer im Feld). Fragen wie "Wie viel habe ich auf
@@ -168,8 +195,9 @@ kumpel = ""
 [tablet]
 # Fragen per Taste auf der Tablet-Seite (Mikrofon des Tablets)
 mikrofon = true
-# Die Aufnahme endet, wenn du so viele Sekunden nichts mehr sagst ...
-stille_sekunden = 2.0
+# Die Aufnahme endet, wenn du so viele Sekunden nichts mehr sagst.
+# (Am Tablet kannst du das auf der Seite unter "Funk" selbst umstellen.)
+stille_sekunden = 1.0
 # ... oder spätestens nach so vielen Sekunden
 max_sekunden = 8
 # Wird hier etwas größer als 0 eingetragen, nimmt die Taste immer genau so

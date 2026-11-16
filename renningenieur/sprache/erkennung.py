@@ -17,6 +17,7 @@ schreibt und sie in erkennung_erzeugen() eintraegt.
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import re
@@ -83,25 +84,37 @@ def whisper_prompt(namen: list[str]) -> str:
             + ", ".join(namen) + ".")
 
 
+def _hotwords(namen: list[str]) -> str:
+    return " ".join(namen)
+
+
 class WhisperErkennung:
     """faster-whisper (OpenAI Whisper, lokal auf dem Prozessor)."""
 
-    def __init__(self, modell: str, ordner: Path, prompt: str = "", threads: int = 4):
+    def __init__(self, modell: str, ordner: Path, prompt: str = "", threads: int = 4,
+                 hotwords: str = ""):
         from faster_whisper import WhisperModel
 
         self.name = f"Whisper {modell}"
         self._prompt = prompt
         self._modell = WhisperModel(modell, device="cpu", compute_type="int8",
                                     cpu_threads=int(threads), download_root=str(ordner))
+        # "hotwords" (Namen bevorzugen) gibt es erst in neueren faster-whisper-Versionen
+        try:
+            unterstuetzt = "hotwords" in inspect.signature(self._modell.transcribe).parameters
+        except (TypeError, ValueError):
+            unterstuetzt = False
+        self._hotwords = hotwords if unterstuetzt else ""
 
     def erkennen(self, pcm: bytes, samplerate: int) -> str:
         if not pcm:
             return ""
         x = audio.auf_16k(audio.als_float(pcm), samplerate)
+        zusatz = {"hotwords": self._hotwords} if self._hotwords else {}
         segmente, _ = self._modell.transcribe(
-            x, language="de", beam_size=2, temperature=0.0, vad_filter=False,
+            x, language="de", beam_size=5, temperature=0.0, vad_filter=False,
             condition_on_previous_text=False, without_timestamps=True,
-            initial_prompt=self._prompt or None, no_speech_threshold=0.6,
+            initial_prompt=self._prompt or None, no_speech_threshold=0.6, **zusatz,
         )
         teile = []
         for s in segmente:
@@ -134,15 +147,34 @@ def _erfunden(text: str, prompt: str) -> bool:
     return False
 
 
+def whisper_vorhanden(ordner: Path) -> bool:
+    """Ist faster-whisper installiert und ein Modell heruntergeladen (whisper.bat)?"""
+    try:
+        import faster_whisper  # noqa: F401
+    except ImportError:
+        return False
+    modelle = ordner / "modelle" / "whisper"
+    return modelle.is_dir() and any(modelle.iterdir())
+
+
 def erkennung_erzeugen(cfg_stt: dict, ordner: Path, fragen=None, namen: list[str] | None = None):
-    """Baut die Erkennung laut [spracherkennung]. Faellt bei Problemen auf Vosk zurueck."""
-    if cfg_stt.get("engine", "vosk") == "whisper":
+    """Baut die Erkennung laut [spracherkennung]. Faellt bei Problemen auf Vosk zurueck.
+
+    engine "auto" nimmt Whisper, wenn es eingerichtet ist (whisper.bat), sonst Vosk.
+    """
+    engine = cfg_stt.get("engine", "auto")
+    if engine == "auto":
+        engine = "whisper" if whisper_vorhanden(ordner) else "vosk"
+        if engine == "vosk":
+            log.info("Whisper ist nicht eingerichtet (whisper.bat) - nehme das ungenauere Vosk.")
+    if engine == "whisper":
         try:
             return WhisperErkennung(
                 cfg_stt.get("whisper_modell", "small"),
                 ordner / "modelle" / "whisper",
                 whisper_prompt(namen or []),
                 cfg_stt.get("whisper_threads", 4),
+                _hotwords(namen or []),
             )
         except ImportError:
             log.warning("Whisper ist nicht installiert (whisper.bat ausführen) - nehme Vosk.")

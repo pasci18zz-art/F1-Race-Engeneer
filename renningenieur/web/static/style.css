@@ -323,3 +323,5 @@ textarea.bericht-text { margin-top: 8px; font: 13px/1.35 ui-monospace, "Cascadia
 [hidden] { display: none !important; }
 .bericht-reihe { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
 .bericht-reihe > .leise { flex: 0 0 190px; }
+.stille-zeile { margin-bottom: 8px; flex-wrap: wrap; }
+.stille-zeile select { min-height: 34px; padding: 2px 8px; }

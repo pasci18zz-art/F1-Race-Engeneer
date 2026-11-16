@@ -19,7 +19,7 @@
 
   const BLOCK = 2048;
   const LEERLAUF_MS = 45000; // so lange bleibt das Mikrofon nach einer Frage offen
-  let einstellungen = { mikrofon: false, https_port: 0, ca: false, stille_sekunden: 2,
+  let einstellungen = { mikrofon: false, https_port: 0, ca: false, stille_sekunden: 1,
                         max_sekunden: 8, feste_sekunden: 0, warten_sekunden: 5 };
 
   let zustand = "bereit"; // bereit | oeffnen | hoert | sendet
@@ -144,7 +144,7 @@
     const e = einstellungen;
     if (e.feste_sekunden > 0) {
       if (t >= e.feste_sekunden) beenden("zeit");
-    } else if (a.sprachStart !== null && t - a.letzteSprache >= e.stille_sekunden) {
+    } else if (a.sprachStart !== null && t - a.letzteSprache >= stilleSekunden()) {
       beenden("stille");
     } else if (a.sprachStart === null && t >= e.warten_sekunden) {
       beenden("nichts");
@@ -265,7 +265,36 @@
     }
   }
 
-  infoHolen();
-  setInterval(infoHolen, 10000);
+  /* Pause bis zum Ende der Aufnahme: am Tablet einstellbar (gilt nur fuer dieses Geraet) */
+  const STILLE_SCHLUESSEL = "renningenieur.stille";
+  function gespeicherteStille() {
+    try {
+      const wert = parseFloat(localStorage.getItem(STILLE_SCHLUESSEL));
+      return wert > 0 ? wert : null;
+    } catch (e) { return null; }
+  }
+  function stilleSekunden() {
+    return gespeicherteStille() ?? einstellungen.stille_sekunden;
+  }
+  function stilleWahlZeigen() {
+    const wahl = document.getElementById("stille-wahl");
+    if (!wahl) return;
+    const aktuell = stilleSekunden();
+    if (![...wahl.options].some((o) => parseFloat(o.value) === aktuell)) {
+      const o = document.createElement("option");
+      o.value = String(aktuell); o.textContent = String(aktuell).replace(".", ",");
+      wahl.appendChild(o);
+    }
+    if (document.activeElement !== wahl) wahl.value = String(aktuell);
+  }
+  const stilleWahl = document.getElementById("stille-wahl");
+  if (stilleWahl) {
+    stilleWahl.addEventListener("change", () => {
+      try { localStorage.setItem(STILLE_SCHLUESSEL, stilleWahl.value); } catch (e) { /* ohne Speicher gilt die Einstellung vom PC */ }
+    });
+  }
+
+  infoHolen().then(stilleWahlZeigen);
+  setInterval(() => infoHolen().then(stilleWahlZeigen), 10000);
   window.addEventListener("pagehide", mikrofonSchliessen);
 })();

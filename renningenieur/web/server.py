@@ -106,7 +106,7 @@ class Webserver:
         return {
             "mikrofon": self.mikrofon_bereit(),
             "https_port": self.https_port if self._https else 0,
-            "stille_sekunden": float(t.get("stille_sekunden", 2.0)),
+            "stille_sekunden": float(t.get("stille_sekunden", 1.0)),
             "max_sekunden": float(t.get("max_sekunden", 8)),
             "feste_sekunden": float(t.get("feste_sekunden", 0)),
             "warten_sekunden": float(t.get("warten_sekunden", 5)),

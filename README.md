@@ -249,6 +249,7 @@ Jedes Modul hat eine Aufgabe und lässt sich einzeln austauschen.
 | `telemetrie/spec.py` | Paketformat 2025/2026 als Tabellen, Paketgrößen laut Spec |
 | `telemetrie/parser.py` | Bytes → Dictionary |
 | `telemetrie/encoder.py` | Dictionary → Bytes (für Simulator und Tests) |
+| `sprache/stimmen.py` | Stimmen (Windows, Piper) und Aussprache-Liste für Namen |
 | `bericht.py` | Session-Bericht als Text und JSON, Qualifying gesamt, Export-Ordner (Format: `BERICHT_FORMAT.md`) |
 | `telemetrie/relay.py` | UDP-Empfang und Weiterleitung |
 | `telemetrie/aufnahme.py` | Telemetrie mitschneiden und abspielen |
