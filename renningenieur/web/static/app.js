@@ -158,10 +158,12 @@ function ereignisliste(el, liste) {
 /* ------------------------------------------------------------------ */
 /* Qualifying-Tabelle (Live und Rückblick)                             */
 /* ------------------------------------------------------------------ */
+/* Reihenfolge wie im Spiel (Platz kommt vom Spiel). Nur ohne Platz zählt die Bestzeit. */
 function qualiSortiert(autos) {
   return autos.slice().sort((a, b) => {
-    const za = a.beste_runde_ms || Infinity, zb = b.beste_runde_ms || Infinity;
-    return za === zb ? a.position - b.position : za - zb;
+    const pa = a.position || 999, pb = b.position || 999;
+    if (pa !== pb) return pa - pb;
+    return (a.beste_runde_ms || Infinity) - (b.beste_runde_ms || Infinity);
   });
 }
 function zeitAbstand(ms) {

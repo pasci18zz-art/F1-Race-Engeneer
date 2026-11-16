@@ -78,6 +78,8 @@ def schnappschuss(z: Rennzustand, mit_runden: bool = False) -> dict:
                     a["result_status"] = e["result_status"]
                     a["status"] = k.RESULT_STATUS.get(e["result_status"], "")
                     a["runden_gefahren"] = e["num_laps"]
+                    if z.ist_quali:
+                        a["beste_runde_ms"] = e["best_lap_time_ms"]  # Wertung des Spiels
             autos.sort(key=lambda a: a["position"])
         if mit_runden:
             for a in autos:
@@ -100,9 +102,11 @@ def schnappschuss(z: Rennzustand, mit_runden: bool = False) -> dict:
                 "ist_sprint": z.sprint,
                 "ist_rennen": z.ist_rennen,
                 "ist_quali": z.ist_quali,
+                "klassifiziert": bool(z.klassifizierung),
                 "quali_teil": k.quali_teil(z.session_typ),
                 "zeit_uebrig": z.zeit_uebrig,
-                "ausscheidung": k.ausscheidungslinie(z.session_typ, len(autos)) if z.ist_quali else None,
+                "ausscheidung": (k.ausscheidungslinie(z.session_typ, max(len(autos), z.anzahl_aktiv))
+                                 if z.ist_quali else None),
                 "gelb_sektoren": z.gelb_sektoren(),
                 "runden_gesamt": z.runden_gesamt,
                 "runde": z.fuehrungsrunde(),

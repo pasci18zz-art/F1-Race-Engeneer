@@ -559,6 +559,10 @@ testen.
      übertragen. Dieselbe Datei legt das Programm nach jedem Qualifying-Teil
      automatisch in `exporte` ab (`…_Qualifying_gesamt_….json`), nach Q3 ist sie
      vollständig.
+   - **Qualifying-Reihenfolge:** Plätze und Bestzeiten übernimmt das Programm
+     vom Spiel (nicht aus eigener Rechnung). Rückversetzungen durch Strafen sind in
+     der Qualifying-Datei nicht enthalten; die wirkliche Startposition steht im
+     Rennbericht („Start“).
    - **Sprint:** Ein Sprintrennen heißt in Seite, Bericht und Dateiname
      **„Sprintrennen“**. Das Spiel meldet es nur als „Rennen“, deshalb erkennt das
      Programm es selbst: Gab es an dem Wochenende ein Sprint-Qualifying

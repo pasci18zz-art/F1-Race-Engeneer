@@ -118,7 +118,12 @@ inklusive Strafzeiten. Ein ausgeschiedener Fahrer hat statt `null`:
 }
 ```
 
-Sortiert nach schnellster **gültiger** Runde; wer keine hat, steht hinten.
+Platz und Bestzeit sind **die Wertung des Spiels** (Platzierung und Bestzeit am Ende des
+Teils). `quelle` ist dann `"spiel"`. Nur wenn das Spiel keine brauchbaren Plätze liefert,
+sortiert das Programm selbst nach der besten gültigen Runde (`quelle: "berechnet"`).
+Wer keine Zeit hat, hat `beste_runde_ms: 0`. Strafen für die Startaufstellung (z. B.
+Rückversetzungen) sind hier **nicht** eingerechnet; die tatsächliche Startposition steht im
+Rennbericht bei `startplatz`.
 `weiter` ist `true`/`false` in Q1 und Q2 (Ausscheidungslinie in
 `quali.ausscheidungslinie`), sonst `null`.
 

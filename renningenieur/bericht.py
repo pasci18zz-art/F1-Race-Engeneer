@@ -78,7 +78,7 @@ def bericht_bauen(daten: dict, erstellt: str | None = None) -> dict:
     ausfaelle = daten.get("ausfaelle", [])
     letzte_runde = max((r["runde"] for a in autos for r in a.get("runden", [])), default=0)
 
-    fahrer = [_fahrer(a, letzte_runde) for a in autos]
+    fahrer = [_fahrer(a, letzte_runde, ist_quali) for a in autos]
     nach_idx = {f["idx"]: f for f in fahrer}
     if ist_quali:
         ergebnis = _ergebnis_quali(fahrer, s)
@@ -157,7 +157,7 @@ def _wetter(log: list[dict]) -> dict:
     }
 
 
-def _fahrer(a: dict, letzte_runde: int) -> dict:
+def _fahrer(a: dict, letzte_runde: int, ist_quali: bool = False) -> dict:
     runden = []
     for r in a.get("runden", []):
         runden.append({
@@ -174,7 +174,8 @@ def _fahrer(a: dict, letzte_runde: int) -> dict:
         "idx": a["idx"], "name": a["name"], "team": a["team"], "startnummer": a["startnummer"],
         "ist_spieler": bool(a.get("ist_spieler")), "mensch": not a.get("ki", True),
         "startplatz": a.get("startplatz"), "position": a["position"],
-        "beste_runde_ms": min(gueltige) if gueltige else 0,
+        # Qualifying: die Bestzeit, die das Spiel meldet. Sonst: beste gueltige Runde.
+        "beste_runde_ms": (a.get("beste_runde_ms") or 0) if ist_quali else (min(gueltige) if gueltige else 0),
         "boxenstopps": [dict(b) for b in a.get("boxenstopps", [])],
         "stints": _stints(a.get("stints", []), runden, ende),
         "runden": runden,
@@ -250,21 +251,33 @@ def _ergebnis_rennen(autos: list[dict], nach_idx: dict, ausfaelle: list[dict]) -
 
 
 def _ergebnis_quali(fahrer: list[dict], s: dict) -> list[dict]:
-    mit = sorted((f for f in fahrer if f["beste_runde_ms"]), key=lambda f: f["beste_runde_ms"])
-    ohne = [f for f in fahrer if not f["beste_runde_ms"]]
+    """Qualifying-Ergebnis in der Reihenfolge des Spiels (Platz und Bestzeit kommen vom Spiel).
+
+    Nur wenn das Spiel keine brauchbaren Plaetze liefert (fehlen oder doppelt), wird nach
+    Bestzeit sortiert. Wer keine Zeit hat, steht hinten.
+    """
+    plaetze = [f.get("position") or 0 for f in fahrer]
+    spiel_ok = bool(fahrer) and all(plaetze) and len(set(plaetze)) == len(plaetze)
+    if spiel_ok:
+        reihe = sorted(fahrer, key=lambda f: f["position"])
+    else:
+        mit = sorted((f for f in fahrer if f["beste_runde_ms"]), key=lambda f: f["beste_runde_ms"])
+        reihe = mit + [f for f in fahrer if not f["beste_runde_ms"]]
+    mit = [f for f in reihe if f["beste_runde_ms"]]
     linie = s.get("ausscheidung")
     bestzeit = mit[0]["beste_runde_ms"] if mit else 0
     liste = []
     davor = 0
-    for pos, f in enumerate(mit + ohne, start=1):
+    for pos, f in enumerate(reihe, start=1):
         zeit = f["beste_runde_ms"]
         gueltige = [r for r in f["runden"] if r["gueltig"]]
         liste.append({
             "position": pos, "idx": f["idx"], "name": f["name"], "team": f["team"],
             "startnummer": f["startnummer"], "ist_spieler": f["ist_spieler"], "mensch": f["mensch"],
             "beste_runde_ms": zeit,
-            "rueckstand_p1_ms": (zeit - bestzeit) if zeit and pos > 1 else 0,
-            "rueckstand_vordermann_ms": (zeit - davor) if zeit and pos > 1 else 0,
+            "rueckstand_p1_ms": max(zeit - bestzeit, 0) if zeit and pos > 1 else 0,
+            "rueckstand_vordermann_ms": max(zeit - davor, 0) if zeit and pos > 1 else 0,
+            "quelle": "spiel" if spiel_ok else "berechnet",
             "runden": len(f["runden"]), "gueltige_runden": len(gueltige),
             "ungueltige_runden": len(f["runden"]) - len(gueltige),
             "reifen": f["stints"][-1]["kurz"] if f["stints"] else None,

@@ -486,7 +486,8 @@ class Auswertung:
                     [(c["tyre_stints_end_laps"][s], c["tyre_stints_actual"][s],
                       c["tyre_stints_visual"][s]) for s in range(n)],
                     a.stints, False, max(c["num_laps"], 1))
-            if c["best_lap_time_ms"]:
+            if c["best_lap_time_ms"] or z.ist_quali:
+                # Im Qualifying gilt die Wertung des Spiels, auch "keine Zeit" (0)
                 a.beste_runde_ms = c["best_lap_time_ms"]
             if c["result_status"] == 4 and not a.ausgefallen_runde and z.ist_rennen:
                 a.runde = max(a.runde, c["num_laps"] + 1)

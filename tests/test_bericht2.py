@@ -268,6 +268,79 @@ class TestQualiGesamt(unittest.TestCase):
             web.stop()
 
 
+class TestQualiWertungDesSpiels(unittest.TestCase):
+    """Platz und Bestzeit am Ende des Qualifyings kommen vom Spiel, nicht aus eigener Rechnung."""
+
+    def _quali(self, aendern=None):
+        import renningenieur.simulator as sim
+        original = sim.encoder.final_classification
+
+        def veraendert(fmt, hdr, cars):
+            cars = [dict(c) for c in cars]
+            if aendern:
+                aendern(cars)
+            return original(fmt, hdr, cars)
+
+        sim.encoder.final_classification = veraendert
+        try:
+            kern, _ = kern_erzeugen()
+            fahre(kern, szenario="qualifying", runden=3)
+        finally:
+            sim.encoder.final_classification = original
+        return kern.zustand
+
+    def test_platz_und_zeit_des_spiels_gewinnen(self):
+        def spiel_anders(cars):
+            cars[4]["position"], cars[19]["position"] = cars[19]["position"], cars[4]["position"]
+            cars[4]["best_lap_time_ms"] += 9000
+            cars[7]["best_lap_time_ms"] = 0  # keine gueltige Zeit
+
+        z = self._quali(spiel_anders)
+        daten = schnappschuss(z, mit_runden=True)
+        self.assertTrue(daten["session"]["klassifiziert"])
+        ergebnis = bericht.bericht_bauen(daten)["ergebnis"]
+        nach_name = {e["name"]: e for e in ergebnis}
+        self.assertEqual(nach_name["Colapinto"]["position"], 4)
+        self.assertEqual(nach_name["Spieler"]["position"], 17)
+        self.assertGreater(nach_name["Spieler"]["beste_runde_ms"], 88000)
+        self.assertEqual(nach_name["Kumpel"]["beste_runde_ms"], 0)  # "keine Zeit" vom Spiel
+        self.assertEqual({e["quelle"] for e in ergebnis}, {"spiel"})
+        # Tablet-Daten (Snapshot) tragen dieselben Werte
+        auto = next(a for a in daten["autos"] if a["name"] == "Spieler")
+        self.assertEqual((auto["position"], auto["beste_runde_ms"]), (17, nach_name["Spieler"]["beste_runde_ms"]))
+
+    def test_gesamtbericht_folgt_der_wertung_des_spiels(self):
+        daten = schnappschuss(self._quali(), mit_runden=True)
+        # Q1 des Spiels: der Letzte laut Zeit ist laut Spiel Platz 1 (z. B. Strafe/Zeit aberkannt)
+        letzter = daten["autos"][-1]["idx"]
+        for a in daten["autos"]:
+            a["position"] = 1 if a["idx"] == letzter else a["position"] + 1
+        g = bericht.gesamt_bauen([daten])
+        self.assertEqual(g["endergebnis"][0]["idx"], letzter)
+
+    def test_live_ohne_wertung_gilt_der_platz_des_spiels(self):
+        daten = schnappschuss(self._quali(), mit_runden=True)
+        zweiter, dritter = daten["autos"][1], daten["autos"][2]
+        zweiter["position"], dritter["position"] = 3, 2  # Spiel sieht die beiden vertauscht
+        ergebnis = bericht.bericht_bauen(daten)["ergebnis"]
+        self.assertEqual([e["idx"] for e in ergebnis[1:3]], [dritter["idx"], zweiter["idx"]])
+
+    def test_ohne_brauchbare_plaetze_wird_nach_zeit_sortiert(self):
+        daten = schnappschuss(self._quali(), mit_runden=True)
+        for a in daten["autos"]:
+            a["position"] = 0
+        ergebnis = bericht.bericht_bauen(daten)["ergebnis"]
+        zeiten = [e["beste_runde_ms"] for e in ergebnis if e["beste_runde_ms"]]
+        self.assertEqual(zeiten, sorted(zeiten))
+        self.assertEqual({e["quelle"] for e in ergebnis}, {"berechnet"})
+
+    def test_tablet_sortiert_nach_dem_platz_des_spiels(self):
+        # Die Sortierung der Seite steht in app.js; hier nur sicherstellen, dass sie den Platz zuerst nimmt.
+        js = (Path(__file__).resolve().parent.parent / "renningenieur" / "web" / "static" / "app.js").read_text(encoding="utf-8")
+        i = js.index("function qualiSortiert")
+        self.assertLess(js.index("a.position", i), js.index("beste_runde_ms", i))
+
+
 class TestDownload(unittest.TestCase):
     def test_dateinamen_sind_ascii(self):
         b = {"erstellt": "2026-01-02T03:04:05", "session": {"begonnen": None, "typ_name": "Rennen",
